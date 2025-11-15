@@ -181,6 +181,14 @@ export default function Signup() {
       const slotRef = doc(db, 'slots', selectedSlot.id);
       const visitRef = collection(db, 'visits');
 
+      // Get current user (available after signUp completes)
+      const { auth } = await import('@/lib/firebase');
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('User not authenticated');
+      }
+
       await runTransaction(db, async (transaction) => {
         const slotDoc = await transaction.get(slotRef);
         if (!slotDoc.exists()) {
@@ -192,20 +200,9 @@ export default function Signup() {
           throw new Error('Slot is full');
         }
 
-        // Get user UID from auth context (will be available after signUp)
-        const user = await new Promise((resolve) => {
-          const unsubscribe = require('firebase/auth').onAuthStateChanged(
-            require('@/lib/firebase').auth,
-            (user: any) => {
-              unsubscribe();
-              resolve(user);
-            }
-          );
-        }) as any;
-
         // Create visit
         const visitData = {
-          customer_uid: user.uid,
+          customer_uid: currentUser.uid,
           slot_id: selectedSlot.id,
           scheduled_for: Timestamp.fromDate(
             new Date(`${selectedSlot.date}T${selectedSlot.window_start}:00`)
