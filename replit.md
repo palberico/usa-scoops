@@ -283,7 +283,8 @@ None documented yet. Will update as preferences are communicated.
 
 - 2024-11-15: Headerless Hero with Floating Navigation
   - Removed header completely for immersive hero experience
-  - Sign In button relocated to top-right corner as floating element with blurred background
+  - Sign In button relocated to hero section next to "Get Started Today" button
+  - Both CTA buttons centered in hero (stack vertically on mobile, horizontal on desktop)
   - Large logo-full.png (h-40 mobile → h-64 desktop) centered in hero above headline
   - Added white circular background (rounded-full) behind logo for visibility against hero image
   - Logo padding scales responsively (p-6 mobile, p-8 tablet+)

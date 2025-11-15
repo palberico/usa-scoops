@@ -6,15 +6,6 @@ import heroImage from '@assets/generated_images/Clean_backyard_with_happy_dog_d6
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Floating Sign In Button */}
-      <div className="fixed top-4 right-4 z-50">
-        <Link href="/login">
-          <Button variant="outline" className="bg-background/95 backdrop-blur-sm" data-testid="button-login">
-            Sign In
-          </Button>
-        </Link>
-      </div>
-
       {/* Hero Section */}
       <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
         {/* Background Image with Overlay */}
@@ -48,16 +39,28 @@ export default function Landing() {
           <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
             Professional pet waste removal service for your home. Enjoy your yard again without the hassle.
           </p>
-          <Link href="/signup">
-            <Button 
-              size="lg" 
-              className="h-14 px-8 text-lg border-2 border-primary-foreground/20"
-              style={{ backgroundColor: '#003366' }}
-              data-testid="button-get-started-hero"
-            >
-              Get Started Today
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/signup">
+              <Button 
+                size="lg" 
+                className="h-14 px-8 text-lg border-2 border-primary-foreground/20"
+                style={{ backgroundColor: '#003366' }}
+                data-testid="button-get-started-hero"
+              >
+                Get Started Today
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="h-14 px-8 text-lg bg-background/95 backdrop-blur-sm border-2 border-primary-foreground/20"
+                data-testid="button-login"
+              >
+                Sign In
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
