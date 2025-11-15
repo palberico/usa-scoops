@@ -153,19 +153,16 @@ export default function CustomerPortal() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="bg-white dark:bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold" data-testid="heading-customer-portal">Customer Portal</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                {customer?.name}
-              </span>
-              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+            <h1 className="text-2xl font-bold text-[hsl(210,100%,25%)]" data-testid="heading-customer-portal">
+              Hello {customer?.name || user?.email?.split('@')[0] || 'there'}!
+            </h1>
+            <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>
@@ -173,7 +170,7 @@ export default function CustomerPortal() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid gap-6">
           {/* Next Visit Card */}
-          <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20" data-testid="card-next-visit">
+          <Card className="bg-gradient-to-br from-[hsl(210,100%,90%)] to-white dark:from-[hsl(210,100%,20%)] dark:to-background" data-testid="card-next-visit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -217,7 +214,7 @@ export default function CustomerPortal() {
           </Card>
 
           {/* Visit History */}
-          <Card className="bg-gradient-to-br from-muted/30 via-background to-background">
+          <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
