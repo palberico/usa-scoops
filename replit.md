@@ -282,7 +282,7 @@ None documented yet. Will update as preferences are communicated.
 ## Recent Changes
 
 - 2024-11-15: Redesigned Signup Flow and Styling
-  - Complete redesign of signup page with navy blue gradient background matching landing page theme
+  - Complete redesign of signup page with clean background
   - New 4-step signup flow (was 3 steps):
     * Step 1: Zip code validation ONLY (no account creation required)
     * Success modal shows "Yay! You're in our service area!" message
@@ -290,8 +290,9 @@ None documented yet. Will update as preferences are communicated.
     * Step 3: Your Information (phone, address, dog count)
     * Step 4: Time slot selection
   - Moved phone number input from Step 1 to Step 3 ("Your Information")
-  - Added USA Scoops logo at top of signup page
-  - Larger, more prominent CTAs and progress indicators
+  - Added large USA Scoops logo at top (h-40 → h-64 responsive sizing matching landing page)
+  - Added "Back to Home" button in top-left corner for easy navigation
+  - Larger, more prominent CTAs and 4-segment progress indicator
   - Professional and fun aesthetic matching brand identity
   - Improved UX: Users can check service area before committing to account creation
 

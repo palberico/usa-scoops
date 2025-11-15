@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -277,10 +277,21 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center px-4 py-8" style={{ background: 'linear-gradient(135deg, hsl(210, 100%, 25%) 0%, hsl(210, 85%, 35%) 100%)' }}>
+    <div className="min-h-screen w-full flex items-center justify-center px-4 py-8 bg-background">
+      {/* Back to Home Link */}
+      <Link href="/">
+        <Button 
+          variant="ghost" 
+          className="absolute top-4 left-4"
+          data-testid="button-back-home"
+        >
+          ← Back to Home
+        </Button>
+      </Link>
+
       {/* Logo */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2">
-        <img src="/logo-full.png" alt="USA Scoops" className="h-16 sm:h-20" data-testid="img-logo" />
+        <img src="/logo-full.png" alt="USA Scoops" className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto" data-testid="img-logo" />
       </div>
 
       {/* Success Modal */}
@@ -303,7 +314,7 @@ export default function Signup() {
         </DialogContent>
       </Dialog>
 
-      <Card className="w-full max-w-2xl mt-24">
+      <Card className="w-full max-w-2xl mt-48 sm:mt-56 md:mt-64 lg:mt-72">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold" data-testid="heading-signup">
             {step === 1 && 'Check Service Area'}
