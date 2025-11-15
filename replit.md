@@ -281,15 +281,15 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
-- 2024-11-15: Hero-Based Logo Design
-  - Moved large logo to hero section for dramatic brand presence
-  - Header simplified to minimal single row with only "Sign In" navigation
-  - Large responsive logo (h-40 mobile → h-64 desktop) centered in hero above headline
-  - Using logo-full.png (logo with text) for complete branding
-  - Removed all text from header for clean, minimalist design
-  - Logo appears prominently over hero image with dark gradient backdrop
+- 2024-11-15: Headerless Hero with Floating Navigation
+  - Removed header completely for immersive hero experience
+  - Sign In button relocated to top-right corner as floating element with blurred background
+  - Large logo-full.png (h-40 mobile → h-64 desktop) centered in hero above headline
+  - Added white circular background (rounded-full) behind logo for visibility against hero image
+  - Logo padding scales responsively (p-6 mobile, p-8 tablet+)
   - Made "Get Started Today" button darker navy blue (#003366)
-  - Creates strong visual impact with logo as first thing visitors see
+  - Creates dramatic first impression with logo as the hero element
+  - Clean, modern design maximizes logo prominence
 
 - 2024-11-15: Visual Rebranding
   - Complete color scheme change from green to navy blue
