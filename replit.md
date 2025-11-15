@@ -1,367 +1,48 @@
 # USA Scoops - Pet Waste Removal Service Platform
 
-## Project Overview
-USA Scoops is a comprehensive web application for managing a local pet waste removal service. The platform enables customers to book services, technicians to manage their routes, and administrators to control operations.
-
-## Tech Stack
-- **Frontend**: React 18, TypeScript, Vite
-- **Routing**: Wouter (lightweight React router)
-- **UI Framework**: Shadcn UI components + Tailwind CSS
-- **Backend**: Firebase
-  - Authentication: Firebase Auth (email/password)
-  - Database: Cloud Firestore
-  - Security: Firestore Security Rules
-- **State Management**: React Context (Auth), TanStack Query (data fetching)
-- **Date Handling**: date-fns
-- **Deployment Target**: Netlify (static hosting)
-
-## Architecture
-
-### Client-Side Firebase Architecture
-This application uses a **client-side Firebase** architecture as specified in requirements:
-- All database operations go directly from React to Firestore
-- No custom Express/Node.js backend server (Express is only used for Vite dev server)
-- Security is enforced through Firestore Security Rules (see `firestore.rules`)
-- Suitable for static deployment on Netlify
-
-### Data Model (Firestore Collections)
-
-**customers**
-- User profile data with role field
-- Address information
-- Dog count and service preferences
-- Status: active, paused, prospect
-
-**service_zips**
-- Defines serviceable zip codes
-- Active/inactive toggle
-
-**slots**
-- Date and time windows for services
-- Capacity tracking (booked_count/capacity)
-- Status: open, held, booked, blocked
-
-**visits**
-- Links customers to specific time slots
-- Tracks service completion
-- Status: scheduled, completed, skipped, canceled
-
-**technicians**
-- Tech profile with service zip coverage
-- Can have admin role for dual access
-
-**messages**
-- Customer support messages
-- Status: open, closed
-
-**waitlist**
-- Customers outside service areas
-
-## User Roles & Permissions
-
-### Customer (`role: 'customer'`)
-- Sign up with zip code validation
-- Book service time slots
-- View upcoming/past visits
-- Send support messages
-- Routes: `/portal`
-
-### Technician (`role: 'technician'`)
-- View assigned visits by date
-- Mark visits complete
-- See customer details and notes
-- Routes: `/tech`
-
-### Admin (`role: 'admin'`)
-- Full access to technician portal
-- Manage service zip codes
-- Create and manage time slots
-- View all visits and bookings
-- Routes: `/admin`, `/tech`
-
-**Multi-Role Support**: Set `role: 'admin'` in Firestore for users who need both tech and admin access.
-
-## Key Features Implemented
-
-✅ **Landing Page**
-- Hero section with background image
-- How It Works (3 steps with icons)
-- CTA sections
-
-✅ **Multi-Step Signup Flow**
-- Step 1: Basic info + zip code validation
-- Step 2: Address details + dog count
-- Step 3: Time slot selection
-- Waitlist for non-serviced zips
-- Automated quote calculation
-
-✅ **Customer Portal**
-- Next scheduled visit card
-- Visit history table
-- Contact form (writes to messages collection)
-
-✅ **Technician Portal**
-- Date-filtered visit list
-- Customer details (address, dog count, notes)
-- Mark completed functionality
-
-✅ **Admin Dashboard**
-- Tabs navigation (Zips, Slots, Visits)
-- Zip code manager (add, toggle, delete)
-- Slot creator with capacity controls
-- Visits overview with filters
-- Confirmation dialogs for destructive actions
-
-✅ **Authentication & Security**
-- Firebase Auth email/password
-- Role-based route protection
-- Firestore Security Rules (must be deployed!)
-- Protected routes with loading states
-
-## Setup Instructions
-
-### 1. Firebase Configuration
-Environment variables (already configured in Replit Secrets):
-```
-VITE_FIREBASE_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN
-VITE_FIREBASE_PROJECT_ID
-VITE_FIREBASE_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID
-VITE_FIREBASE_APP_ID
-```
-
-### 2. Deploy Firestore Security Rules
-**CRITICAL**: Deploy the security rules from `firestore.rules` to Firebase:
-```bash
-firebase deploy --only firestore:rules
-```
-
-Without deployed security rules, your Firestore data is publicly accessible!
-
-### 3. Initial Data Setup
-
-**Create Admin User:**
-1. Sign up through the app
-2. In Firebase Console → Firestore → customers collection
-3. Find your user document
-4. Edit `role` field to `"admin"`
-
-**Add Service Zips:**
-- Log in as admin
-- Navigate to Admin Dashboard → Zip Codes tab
-- Add serviceable zip codes
-
-**Create Time Slots:**
-- Admin Dashboard → Service Slots tab
-- Create date/time windows with capacity
-
-## Development
-
-```bash
-npm install
-npm run dev
-```
-
-Access the app at the Replit preview URL.
-
-## Deployment to Netlify
-
-1. **Build**:
-   ```bash
-   npm run build
-   ```
-
-2. **Deploy**: Upload `dist` folder to Netlify
-
-3. **Environment Variables**: Add all `VITE_*` variables in Netlify dashboard
-
-4. **Redirects**: Already configured in `client/public/_redirects` for SPA routing
-
-## File Structure
-
-```
-client/
-  src/
-    components/
-      ProtectedRoute.tsx    # Role-based route guard
-      ui/                   # Shadcn UI components
-    hooks/
-      use-auth.tsx          # Firebase auth context
-    lib/
-      firebase.ts           # Firebase initialization
-    pages/
-      landing.tsx           # Public landing page
-      login.tsx             # Login form
-      signup.tsx            # Multi-step signup
-      customer-portal.tsx   # Customer dashboard
-      technician-portal.tsx # Tech visit management
-      admin-dashboard.tsx   # Admin controls
-    App.tsx                 # Route configuration
-    index.css              # Tailwind + design tokens
-  public/
-    _redirects            # Netlify SPA routing
-shared/
-  types.ts                # TypeScript types for all data models
-firestore.rules          # Firebase security rules
-README.md                # Deployment instructions
-```
-
-## Design System
-
-- **Primary Color**: Navy Blue (HSL 210 100% 25% light mode, HSL 210 85% 35% dark mode)
-- **Brand Identity**: Navy blue with red accents matching USA Scoops logo
-- **Font**: Roboto (Material Design standard)
-- **Components**: Shadcn UI with custom theming
-- **Responsive**: Mobile-first design
-- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation, password visibility toggles
-
-## Business Logic
-
-**Quote Calculation**:
-- Base price: $15
-- Additional dogs: +$5 each
-- Example: 3 dogs = $15 + (2 × $5) = $25
-
-**Slot Booking**:
-- Uses Firestore transactions for safety
-- Prevents overbooking through capacity checks
-- Increments `booked_count` atomically
-
-**Role Resolution**:
-- Checks `customers` collection first
-- Falls back to `technicians` collection
-- Admin role takes precedence for multi-role users
-
-## Testing Considerations
-
-**Test Admin Workflow**:
-1. Create admin user (manually in Firestore)
-2. Add service zips
-3. Create time slots
-4. Verify slots appear in signup flow
-
-**Test Customer Workflow**:
-1. Sign up with valid zip code
-2. Complete address form
-3. Select time slot
-4. Verify booking appears in customer portal
-
-**Test Technician Workflow**:
-1. Create technician user (manually in Firestore)
-2. Assign visit to technician (set technician_uid)
-3. Log in as tech
-4. Mark visit complete
-
-## Known Limitations (MVP)
-
-- No Stripe integration (payment is simulated)
-- No Cloud Functions (booking logic is client-side)
-- No email notifications
-- No recurring service schedules
-- No automated technician assignment
-- Manual role assignment (no UI for creating techs/admins)
-
-These are documented for Phase 2 implementation.
-
-## Security Notes
-
-⚠️ **CRITICAL**: 
-1. Firestore security rules MUST be deployed before production use
-2. Never commit Firebase API keys to public repos (use environment variables)
-3. Role assignment must be done manually in Firestore console for MVP
-4. For production, implement Cloud Functions for:
-   - Slot booking transactions
-   - Role management
-   - Admin user creation
+## Overview
+USA Scoops is a web application designed to manage a local pet waste removal service. It provides functionalities for customers to book services, technicians to manage their routes, and administrators to oversee operations. The platform aims to streamline service scheduling, customer management, and field operations, catering to the growing demand for convenient pet care services.
 
 ## User Preferences
+I prefer simple language and clear instructions. I want iterative development, where I can review changes at each stage. Ask before making major architectural changes or introducing new dependencies. I prefer detailed explanations for complex implementations.
 
-None documented yet. Will update as preferences are communicated.
+## System Architecture
 
-## Recent Changes
+### UI/UX Decisions
+The application features a modern, responsive design with a mobile-first approach. It utilizes Shadcn UI components with Tailwind CSS for consistent styling. The primary color scheme is navy blue (HSL 210 100% 25% light mode, HSL 210 85% 35% dark mode) with red accents, aligning with the USA Scoops brand identity. Roboto is used as the primary font. Accessibility features include ARIA labels, semantic HTML, and keyboard navigation.
 
-- 2024-11-15: Portal Styling and Signup Enhancements
-  - Increased zip code input font size to text-2xl with font-semibold for better visibility
-  - Redesigned customer portal header:
-    * White background with no border (both light and dark modes)
-    * Changed "Customer Portal" to "Hello {name}!" in navy blue
-    * Greeting has fallback chain: customer name → email username → "there"
-  - Enhanced customer portal cards with custom gradients:
-    * Next Visit: light navy to white gradient (HSL 210,100%,90% → white)
-    * Visit History: very light red to white gradient (red-50 → white)
-    * Contact Us: blue-tinted gradient with border
-  - Added icons to all portal card headers (Calendar, Clock, MessageSquare)
-  - Added Clock icon next to time display in Next Visit card
-  - Added security alert under Next Visit card: "Please make sure your dog is secure before our technician arrives"
-  - Security note uses amber color scheme with ShieldAlert icon
-  - All gradients and colors maintain dark mode compatibility
+### Technical Implementations
+The application employs a client-side Firebase architecture, with all database operations directly from React to Firestore. Routing is handled by Wouter, and state management utilizes React Context for authentication and TanStack Query for data fetching. Date handling is managed by `date-fns`.
 
-- 2024-11-15: UX Improvements and Booking Flow Refactor
-  - Reduced logo circle padding on landing page for tighter appearance (p-4 sm:p-6)
-  - Added back button on signup step 1 to navigate to home
-  - Implemented phone number auto-formatting as XXX-XXX-XXXX while user types
-  - Removed "Your Quote" toast from step 3
-  - Completely refactored booking flow to show quote confirmation modal first:
-    * Step 4: User selects time slot and clicks "Book Service"
-    * Quote modal displays: date/time, number of dogs, and calculated price
-    * Two options: "Go Back" (return to time selection) or "Confirm & Pay" (proceed to payment)
-    * Step 5: New payment form step with placeholder fields (cardholder name, card number, expiry, CVC, billing ZIP)
-    * Account creation and booking only happen after payment form submission
-  - Updated progress indicator from 4 to 5 segments
-  - Split booking logic into two phases: quote preview and payment confirmation
-  - Added note that payment form is placeholder (Stripe integration coming soon)
+### Feature Specifications
 
-- 2024-11-15: Redesigned Signup Flow and Styling
-  - Complete redesign of signup page with clean background
-  - New 4-step signup flow (was 3 steps):
-    * Step 1: Zip code validation ONLY (no account creation required)
-    * Success modal shows "Yay! You're in our service area!" message
-    * Step 2: Create account (name, email, password)
-    * Step 3: Your Information (phone, address, dog count)
-    * Step 4: Time slot selection
-  - Moved phone number input from Step 1 to Step 3 ("Your Information")
-  - Added large USA Scoops logo at top (h-40 → h-64 responsive sizing matching landing page)
-  - Larger, more prominent CTAs and 4-segment progress indicator
-  - Professional and fun aesthetic matching brand identity
-  - Improved UX: Users can check service area before committing to account creation
+*   **Landing Page**: Hero section, "How It Works" guide, and calls to action.
+*   **Multi-Step Signup Flow**: Guides users through zip code validation, account creation, address and dog count input, and time slot selection. Includes a waitlist for non-serviced areas and automated quote calculation.
+*   **Customer Portal**: Allows customers to view upcoming/past visits, cancel/reschedule services, and send support messages.
+*   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete.
+*   **Admin Dashboard**: Provides administrators with tools to manage service zip codes, create time slots, and oversee all visits and bookings.
+*   **Authentication & Security**: Implements Firebase Auth (email/password), role-based route protection, and Firestore Security Rules for data access control.
 
-- 2024-11-15: Enhanced Waitlist Flow
-  - When zip code is not in service area, modal now displays "Service area is not yet available"
-  - Two-step waitlist process:
-    * Initial modal offers "Join Waitlist" or "Maybe Later" buttons
-    * "Maybe Later" returns user to landing page
-    * "Join Waitlist" opens form to collect name and email
-  - Waitlist form does NOT create an account
-  - Saves to waitlist collection (name, zip, email, created_at)
-  - Success confirmation toast and redirect to home after submission
-  - Uses serverTimestamp() for Firestore compatibility
+### System Design Choices
 
-- 2024-11-15: Headerless Hero with Floating Navigation
-  - Removed header completely for immersive hero experience
-  - Sign In button relocated to hero section next to "Get Started Today" button
-  - Both CTA buttons centered in hero (stack vertically on mobile, horizontal on desktop)
-  - Large logo-full.png (h-40 mobile → h-64 desktop) centered in hero above headline
-  - Added white circular background (rounded-full) behind logo for visibility against hero image
-  - Logo padding scales responsively (p-6 mobile, p-8 tablet+)
-  - Made "Get Started Today" button darker navy blue (#003366)
-  - Creates dramatic first impression with logo as the hero element
-  - Clean, modern design maximizes logo prominence
+*   **Data Model**: Utilizes Firestore collections for `customers`, `service_zips`, `slots`, `visits`, `technicians`, `messages`, and `waitlist`, each structured to support specific application functionalities.
+*   **User Roles**: Supports `customer`, `technician`, and `admin` roles with distinct access levels and functionalities. Multi-role support allows users to have both technician and admin access.
+*   **Quote Calculation**: Based on a base price of $15 plus $5 for each additional dog.
+*   **Slot Booking**: Ensures data consistency and prevents overbooking using Firestore transactions.
+*   **Role Resolution**: Prioritizes `admin` role and checks both `customers` and `technicians` collections for user roles.
 
-- 2024-11-15: Visual Rebranding
-  - Complete color scheme change from green to navy blue
-  - Updated primary color to HSL 210 100% 25% (light) and HSL 210 85% 35% (dark)
-  - Added USA Scoops logo (logo-icon.png and logo-full.png)
-  - Landing page header with larger logo and branding text
-  - All buttons, focus rings, and UI elements now use navy blue theme
-  - Maintained accessibility with proper contrast ratios
+## External Dependencies
 
-- 2024-11-15: Initial MVP implementation
-  - Complete UI for all user roles
-  - Firebase integration with auth and Firestore
-  - Multi-step signup with slot booking
-  - Role-based access control
-  - Firestore security rules
-  - Timestamp handling fixes
-  - Multi-role support (admin + technician)
-  - Password visibility toggles on login/signup pages
+*   **Firebase**:
+    *   **Authentication**: Firebase Auth (email/password)
+    *   **Database**: Cloud Firestore
+    *   **Security**: Firestore Security Rules
+*   **React**: Frontend library
+*   **TypeScript**: Type-safe JavaScript
+*   **Vite**: Build tool
+*   **Wouter**: Lightweight React router
+*   **Shadcn UI**: UI component library
+*   **Tailwind CSS**: Utility-first CSS framework
+*   **TanStack Query**: Data fetching and caching library
+*   **date-fns**: Date utility library
+*   **Netlify**: Deployment target for static hosting
