@@ -21,7 +21,7 @@ export default function Landing() {
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Large Logo with White Circle Background */}
-          <div className="inline-block rounded-full bg-white p-6 sm:p-8 mb-8">
+          <div className="inline-block rounded-full bg-white p-4 sm:p-6 mb-8">
             <img 
               src="/logo-full.png" 
               alt="USA Scoops" 

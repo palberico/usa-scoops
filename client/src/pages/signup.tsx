@@ -14,6 +14,24 @@ import { calculateQuote } from '@shared/types';
 import type { Slot } from '@shared/types';
 import { format, parse } from 'date-fns';
 
+// Helper function to format phone number as XXX-XXX-XXXX
+const formatPhoneNumber = (value: string): string => {
+  // Remove all non-digit characters
+  const digits = value.replace(/\D/g, '');
+  
+  // Limit to 10 digits
+  const limited = digits.slice(0, 10);
+  
+  // Format as XXX-XXX-XXXX
+  if (limited.length <= 3) {
+    return limited;
+  } else if (limited.length <= 6) {
+    return `${limited.slice(0, 3)}-${limited.slice(3)}`;
+  } else {
+    return `${limited.slice(0, 3)}-${limited.slice(3, 6)}-${limited.slice(6)}`;
+  }
+};
+
 export default function Signup() {
   const [, setLocation] = useLocation();
   const { signUp } = useAuth();
@@ -24,12 +42,21 @@ export default function Signup() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
+  const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   
   const [waitlistData, setWaitlistData] = useState({
     name: '',
     email: '',
+  });
+  
+  const [paymentData, setPaymentData] = useState({
+    cardholderName: '',
+    cardNumber: '',
+    expiry: '',
+    cvc: '',
+    billingZip: '',
   });
   
   const [formData, setFormData] = useState({
@@ -146,13 +173,6 @@ export default function Signup() {
   // Step 3: Your Information (address, phone, dog count)
   const handleInformationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Show quote
-    const quote = calculateQuote(formData.dog_count);
-    toast({
-      title: 'Your Quote',
-      description: `$${quote} per service for ${formData.dog_count} dog${formData.dog_count > 1 ? 's' : ''}`,
-    });
 
     setStep(4); // Move to time slot selection
     
@@ -185,8 +205,36 @@ export default function Signup() {
     }
   };
 
-  // Step 4: Book Slot and Create Account
-  const handleBooking = async () => {
+  // Step 4: Show Quote Modal
+  const handleBooking = () => {
+    if (!selectedSlot) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select a time slot',
+      });
+      return;
+    }
+
+    // Show quote modal
+    setShowQuoteModal(true);
+  };
+
+  // Handle going back to time selection from quote modal
+  const handleGoBack = () => {
+    setShowQuoteModal(false);
+  };
+
+  // Handle confirm and pay - move to payment step
+  const handleConfirmAndPay = () => {
+    setShowQuoteModal(false);
+    setStep(5); // Move to payment step
+  };
+
+  // Step 5: Complete Booking After Payment
+  const handleCompleteBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!selectedSlot) {
       toast({
         variant: 'destructive',
@@ -323,6 +371,64 @@ export default function Signup() {
         </DialogContent>
       </Dialog>
 
+      {/* Quote Confirmation Modal */}
+      <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
+        <DialogContent className="sm:max-w-md" data-testid="modal-quote">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Review Your Booking</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              Confirm your details before proceeding to payment
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedSlot && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground">Service Date & Time</h3>
+                <p className="text-base" data-testid="text-quote-datetime">
+                  {format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')}
+                  <br />
+                  {selectedSlot.window_start} - {selectedSlot.window_end}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground">Number of Dogs</h3>
+                <p className="text-base" data-testid="text-quote-dogs">
+                  {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm text-muted-foreground">Service Price</h3>
+                <p className="text-2xl font-bold text-primary" data-testid="text-quote-price">
+                  ${calculateQuote(formData.dog_count)}
+                </p>
+                <p className="text-xs text-muted-foreground">Per service</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <Button 
+              onClick={handleConfirmAndPay}
+              className="w-full"
+              data-testid="button-confirm-pay"
+            >
+              Confirm & Pay
+            </Button>
+            <Button 
+              onClick={handleGoBack}
+              variant="outline"
+              className="w-full"
+              data-testid="button-go-back"
+            >
+              Go Back
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Waitlist Modal */}
       <Dialog open={showWaitlistModal} onOpenChange={setShowWaitlistModal}>
         <DialogContent className="sm:max-w-md" data-testid="modal-waitlist">
@@ -416,20 +522,23 @@ export default function Signup() {
             {step === 2 && 'Create Your Account'}
             {step === 3 && 'Your Information'}
             {step === 4 && 'Choose Your Time'}
+            {step === 5 && 'Payment Details'}
           </CardTitle>
           <CardDescription className="text-base">
             {step === 1 && 'See if we service your area'}
             {step === 2 && 'Set up your account to get started'}
             {step === 3 && 'Tell us about your property'}
             {step === 4 && 'Select a convenient service time'}
+            {step === 5 && 'Complete your booking'}
           </CardDescription>
           
           {/* Progress Indicator */}
           <div className="flex items-center justify-center gap-2 mt-6">
-            <div className={`h-2 w-16 rounded-full transition-all ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-16 rounded-full transition-all ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-16 rounded-full transition-all ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-16 rounded-full transition-all ${step >= 4 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-12 rounded-full transition-all ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-12 rounded-full transition-all ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-12 rounded-full transition-all ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-12 rounded-full transition-all ${step >= 4 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-12 rounded-full transition-all ${step >= 5 ? 'bg-primary' : 'bg-muted'}`} />
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-6">
@@ -453,24 +562,35 @@ export default function Signup() {
                 </p>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 text-lg"
-                disabled={loading}
-                data-testid="button-check-zip"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="mr-2 h-5 w-5" />
-                    Check Service Area
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setLocation('/')}
+                  className="h-12 text-lg"
+                  data-testid="button-back-home"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1 h-12 text-lg"
+                  disabled={loading}
+                  data-testid="button-check-zip"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="mr-2 h-5 w-5" />
+                      Check Service Area
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           )}
 
@@ -563,8 +683,8 @@ export default function Signup() {
                   id="phone"
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(555) 123-4567"
+                  onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
+                  placeholder="555-123-4567"
                   required
                   data-testid="input-phone"
                 />
@@ -737,6 +857,124 @@ export default function Signup() {
                 </>
               )}
             </div>
+          )}
+
+          {/* Step 5: Payment Form (Placeholder) */}
+          {step === 5 && (
+            <form onSubmit={handleCompleteBooking} className="space-y-4">
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2 mb-4">
+                <h3 className="font-semibold">Booking Summary</h3>
+                {selectedSlot && (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')} • {selectedSlot.window_start} - {selectedSlot.window_end}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''} • ${calculateQuote(formData.dog_count)} per service
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cardholderName">Cardholder Name</Label>
+                <Input
+                  id="cardholderName"
+                  value={paymentData.cardholderName}
+                  onChange={(e) => setPaymentData({ ...paymentData, cardholderName: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                  data-testid="input-cardholder-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cardNumber">Card Number</Label>
+                <Input
+                  id="cardNumber"
+                  value={paymentData.cardNumber}
+                  onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value })}
+                  placeholder="1234 5678 9012 3456"
+                  required
+                  data-testid="input-card-number"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="expiry">Expiry Date</Label>
+                  <Input
+                    id="expiry"
+                    value={paymentData.expiry}
+                    onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })}
+                    placeholder="MM/YY"
+                    required
+                    data-testid="input-expiry"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cvc">CVC</Label>
+                  <Input
+                    id="cvc"
+                    value={paymentData.cvc}
+                    onChange={(e) => setPaymentData({ ...paymentData, cvc: e.target.value })}
+                    placeholder="123"
+                    maxLength={4}
+                    required
+                    data-testid="input-cvc"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="billingZip">Billing ZIP Code</Label>
+                <Input
+                  id="billingZip"
+                  value={paymentData.billingZip}
+                  onChange={(e) => setPaymentData({ ...paymentData, billingZip: e.target.value })}
+                  placeholder="12345"
+                  maxLength={5}
+                  required
+                  data-testid="input-billing-zip"
+                />
+              </div>
+
+              <div className="bg-primary/10 p-3 rounded-lg">
+                <p className="text-xs text-center text-muted-foreground">
+                  This is a placeholder payment form. Stripe integration will be added soon.
+                </p>
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(4)}
+                  data-testid="button-back-payment"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={loading}
+                  data-testid="button-complete-booking"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Complete Booking
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           )}
         </CardContent>
       </Card>

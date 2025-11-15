@@ -281,6 +281,21 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
+- 2024-11-15: UX Improvements and Booking Flow Refactor
+  - Reduced logo circle padding on landing page for tighter appearance (p-4 sm:p-6)
+  - Added back button on signup step 1 to navigate to home
+  - Implemented phone number auto-formatting as XXX-XXX-XXXX while user types
+  - Removed "Your Quote" toast from step 3
+  - Completely refactored booking flow to show quote confirmation modal first:
+    * Step 4: User selects time slot and clicks "Book Service"
+    * Quote modal displays: date/time, number of dogs, and calculated price
+    * Two options: "Go Back" (return to time selection) or "Confirm & Pay" (proceed to payment)
+    * Step 5: New payment form step with placeholder fields (cardholder name, card number, expiry, CVC, billing ZIP)
+    * Account creation and booking only happen after payment form submission
+  - Updated progress indicator from 4 to 5 segments
+  - Split booking logic into two phases: quote preview and payment confirmation
+  - Added note that payment form is placeholder (Stripe integration coming soon)
+
 - 2024-11-15: Redesigned Signup Flow and Styling
   - Complete redesign of signup page with clean background
   - New 4-step signup flow (was 3 steps):
