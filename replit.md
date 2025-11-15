@@ -281,12 +281,16 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
-- 2024-11-15: Landing Page Header Improvements
-  - Increased logo size to h-20 for much better visibility
-  - Increased header height to h-24 to accommodate larger logo
-  - Removed "Get Started" button from header, kept only "Sign In"
+- 2024-11-15: Two-Row Header Redesign for Maximum Logo Visibility
+  - Redesigned header with two distinct rows for better brand prominence
+  - Top row: Large centered logo (h-32 mobile, h-36 tablet, h-40 desktop) with "USA Scoops" text
+  - Bottom row: Streamlined navigation with only "Sign In" button
+  - Responsive design: Logo and text stack vertically on mobile, align horizontally on larger screens
+  - Hero section margins adjusted (mt-60/64/72) to accommodate taller header
+  - Visual separator border between branding and navigation rows
+  - Removed "Get Started" button from header for cleaner design
   - Made hero "Get Started Today" button darker navy blue (#003366)
-  - Improved overall header design and prominence
+  - Logo is now 2x larger than previous design for maximum brand impact
 
 - 2024-11-15: Visual Rebranding
   - Complete color scheme change from green to navy blue
