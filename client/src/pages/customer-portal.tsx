@@ -371,9 +371,18 @@ export default function CustomerPortal() {
               {nextVisit ? (
                 <div className="space-y-4">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="space-y-1">
+                      {nextVisit.visit.is_recurring && (
+                        <Badge variant="secondary" className="mb-1" data-testid="badge-recurring">
+                          Recurring Monthly Plan
+                        </Badge>
+                      )}
                       <p className="font-semibold text-lg" data-testid="text-visit-date">
-                        {format(nextVisit.visit.scheduled_for.toDate(), 'EEEE, MMMM d, yyyy')}
+                        {nextVisit.visit.is_recurring ? (
+                          <>Every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} • Next: {format(nextVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}</>
+                        ) : (
+                          format(nextVisit.visit.scheduled_for.toDate(), 'EEEE, MMMM d, yyyy')
+                        )}
                       </p>
                       <p className="text-muted-foreground flex items-center gap-1.5" data-testid="text-visit-time">
                         <Clock className="h-4 w-4" />
