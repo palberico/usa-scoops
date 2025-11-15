@@ -167,38 +167,114 @@ export default function Signup() {
   // Step 2: Create Account (name, email, password)
   const handleAccountCreation = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStep(3); // Move to "Your Information" step
+    setLoading(true);
+
+    try {
+      // Create Firebase auth account and customer document
+      await signUp(formData.email, formData.password, {
+        name: formData.name,
+        address: {
+          street: '',
+          city: '',
+          state: '',
+          zip: formData.zip,
+          gate_code: '',
+          notes: ''
+        },
+        phone: '',
+        dog_count: 0,
+      });
+
+      toast({
+        title: 'Account Created!',
+        description: 'Welcome to USA Scoops',
+      });
+
+      setStep(3); // Move to "Your Information" step
+    } catch (error: any) {
+      console.error('Account creation error:', error);
+      
+      // Handle specific Firebase auth errors
+      let errorMessage = error.message || 'Failed to create account';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please login instead.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password should be at least 6 characters.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Please enter a valid email address.';
+      }
+      
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: errorMessage,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 3: Your Information (address, phone, dog count)
   const handleInformationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setStep(4); // Move to time slot selection
-    
-    // Load available slots
     setLoading(true);
+
     try {
+      // Get current user
+      const { auth } = await import('@/lib/firebase');
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('User not authenticated. Please refresh and try again.');
+      }
+
+      // Update customer document with additional information
+      const { updateDoc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'customers', currentUser.uid), {
+        phone: formData.phone,
+        address: {
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zip: formData.zip,
+          gate_code: formData.gate_code || '',
+          notes: formData.notes || ''
+        },
+        dog_count: formData.dog_count,
+        updated_at: serverTimestamp(),
+      });
+
+      setStep(4); // Move to time slot selection
+      
+      // Load available slots filtered by customer's zip
       const slotsRef = collection(db, 'slots');
-      const q = query(slotsRef, where('status', '==', 'open'));
+      const q = query(slotsRef, where('zip_code', '==', formData.zip));
       const snapshot = await getDocs(q);
       
       const slots: Slot[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.booked_count < data.capacity) {
+        if (data.booked < data.capacity) {
           slots.push({ ...data, id: doc.id } as Slot);
         }
       });
 
-      // Sort by date
-      slots.sort((a, b) => a.date.localeCompare(b.date));
+      // Sort: recurring first, then by date
+      slots.sort((a, b) => {
+        if (a.is_recurring && !b.is_recurring) return -1;
+        if (!a.is_recurring && b.is_recurring) return 1;
+        if (!a.is_recurring && !b.is_recurring) {
+          return a.date.localeCompare(b.date);
+        }
+        return 0;
+      });
+      
       setAvailableSlots(slots);
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to load available slots',
+        description: error.message || 'Failed to save information',
       });
     } finally {
       setLoading(false);
