@@ -37,6 +37,7 @@ export interface InsertServiceZip extends Omit<ServiceZip, 'id'> {}
 // Slot Types
 export interface Slot {
   id: string;
+  zip: string; // Service area zip code
   date: string; // YYYY-MM-DD (for one-time slots) or empty for recurring
   window_start: string; // HH:mm
   window_end: string; // HH:mm

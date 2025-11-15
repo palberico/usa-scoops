@@ -61,6 +61,7 @@ export default function AdminDashboard() {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [slotType, setSlotType] = useState<'one-time' | 'recurring'>('recurring');
   const [slotForm, setSlotForm] = useState({
+    zip: '',
     date: format(new Date(), 'yyyy-MM-dd'),
     day_of_week: 6, // Saturday by default
     window_start: '09:00',
@@ -226,6 +227,16 @@ export default function AdminDashboard() {
   const handleCreateSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate zip code
+    if (!slotForm.zip || slotForm.zip.length !== 5) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Zip Code',
+        description: 'Please enter a valid 5-digit zip code',
+      });
+      return;
+    }
+    
     // Validate time window
     if (slotForm.window_start >= slotForm.window_end) {
       toast({
@@ -238,6 +249,7 @@ export default function AdminDashboard() {
 
     try {
       const slotData: any = {
+        zip: slotForm.zip,
         window_start: slotForm.window_start,
         window_end: slotForm.window_end,
         capacity: slotForm.capacity,
@@ -263,6 +275,16 @@ export default function AdminDashboard() {
       toast({
         title: 'Success',
         description: `${slotType === 'recurring' ? 'Recurring' : 'One-time'} slot created`,
+      });
+
+      // Reset form
+      setSlotForm({
+        zip: '',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        day_of_week: 6,
+        window_start: '09:00',
+        window_end: '11:00',
+        capacity: 4,
       });
 
       loadSlots();
@@ -528,6 +550,26 @@ export default function AdminDashboard() {
                         </Label>
                       </div>
                     </RadioGroup>
+                  </div>
+
+                  {/* Zip Code */}
+                  <div className="space-y-2">
+                    <Label htmlFor="slot-zip">Service Zip Code</Label>
+                    <Select
+                      value={slotForm.zip}
+                      onValueChange={(value) => setSlotForm({ ...slotForm, zip: value })}
+                    >
+                      <SelectTrigger id="slot-zip" data-testid="select-slot-zip">
+                        <SelectValue placeholder="Select zip code" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {zips.filter(z => z.active).map((zip) => (
+                          <SelectItem key={zip.id} value={zip.zip}>
+                            {zip.zip}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

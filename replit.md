@@ -26,6 +26,7 @@ The application employs a client-side Firebase architecture, with all database o
 ### System Design Choices
 
 *   **Data Model**: Utilizes Firestore collections for `customers`, `service_zips`, `slots`, `visits`, `technicians`, `messages`, and `waitlist`, each structured to support specific application functionalities.
+    *   **Slots**: Each slot must include a `zip` field (5-digit zip code) to associate it with a service area. Slots are filtered by customer's zip code during booking.
 *   **User Roles**: Supports `customer`, `technician`, and `admin` roles with distinct access levels and functionalities. Multi-role support allows users to have both technician and admin access.
 *   **Quote Calculation**: Based on a base price of $15 plus $5 for each additional dog.
 *   **Slot Booking**: Ensures data consistency and prevents overbooking using Firestore transactions.

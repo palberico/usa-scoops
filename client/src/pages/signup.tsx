@@ -248,13 +248,13 @@ export default function Signup() {
       
       // Load available slots filtered by customer's zip
       const slotsRef = collection(db, 'slots');
-      const q = query(slotsRef, where('zip_code', '==', formData.zip));
+      const q = query(slotsRef, where('zip', '==', formData.zip));
       const snapshot = await getDocs(q);
       
       const slots: Slot[] = [];
       snapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.booked < data.capacity) {
+        if (data.booked_count < data.capacity) {
           slots.push({ ...data, id: doc.id } as Slot);
         }
       });
