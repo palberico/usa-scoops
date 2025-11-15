@@ -281,16 +281,15 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
-- 2024-11-15: Two-Row Header Redesign for Maximum Logo Visibility
-  - Redesigned header with two distinct rows for better brand prominence
-  - Top row: Large centered logo (h-32 mobile, h-36 tablet, h-40 desktop) with "USA Scoops" text
-  - Bottom row: Streamlined navigation with only "Sign In" button
-  - Responsive design: Logo and text stack vertically on mobile, align horizontally on larger screens
-  - Hero section margins adjusted (mt-60/64/72) to accommodate taller header
-  - Visual separator border between branding and navigation rows
-  - Removed "Get Started" button from header for cleaner design
-  - Made hero "Get Started Today" button darker navy blue (#003366)
-  - Logo is now 2x larger than previous design for maximum brand impact
+- 2024-11-15: Hero-Based Logo Design
+  - Moved large logo to hero section for dramatic brand presence
+  - Header simplified to minimal single row with only "Sign In" navigation
+  - Large responsive logo (h-40 mobile → h-64 desktop) centered in hero above headline
+  - Using logo-full.png (logo with text) for complete branding
+  - Removed all text from header for clean, minimalist design
+  - Logo appears prominently over hero image with dark gradient backdrop
+  - Made "Get Started Today" button darker navy blue (#003366)
+  - Creates strong visual impact with logo as first thing visitors see
 
 - 2024-11-15: Visual Rebranding
   - Complete color scheme change from green to navy blue
