@@ -37,12 +37,15 @@ export interface InsertServiceZip extends Omit<ServiceZip, 'id'> {}
 // Slot Types
 export interface Slot {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string; // YYYY-MM-DD (for one-time slots) or empty for recurring
   window_start: string; // HH:mm
   window_end: string; // HH:mm
   status: 'open' | 'held' | 'booked' | 'blocked';
   capacity: number;
   booked_count: number;
+  // Recurring schedule fields
+  is_recurring?: boolean; // true for recurring slots (weekly)
+  day_of_week?: number; // 0-6 (0 = Sunday, 1 = Monday, etc.) for recurring slots
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -60,6 +63,11 @@ export interface Visit {
   status: 'scheduled' | 'completed' | 'skipped' | 'canceled';
   technician_uid?: string;
   notes?: string;
+  // Recurring schedule tracking
+  is_recurring?: boolean; // true if this is a recurring monthly plan
+  recurring_day_of_week?: number; // 0-6 for recurring visits
+  recurring_window_start?: string; // HH:mm for recurring visits
+  recurring_window_end?: string; // HH:mm for recurring visits
   created_at: Timestamp;
   updated_at: Timestamp;
 }
@@ -110,4 +118,46 @@ export const calculateQuote = (dogCount: number): number => {
   const basePrice = 15;
   const pricePerDog = 5;
   return basePrice + (dogCount - 1) * pricePerDog;
+};
+
+// Helper function to calculate next occurrence of a recurring visit
+export const calculateNextServiceDate = (dayOfWeek: number, windowStart?: string): Date => {
+  const now = new Date();
+  const todayDayOfWeek = now.getDay();
+  
+  // Calculate days until next occurrence
+  let daysUntilNext = dayOfWeek - todayDayOfWeek;
+  
+  // If it's the same day, check if the time window has passed
+  if (daysUntilNext === 0 && windowStart) {
+    const [hours, minutes] = windowStart.split(':').map(Number);
+    const windowTime = new Date(now);
+    windowTime.setHours(hours, minutes, 0, 0);
+    
+    // If the window has passed today, schedule for next week
+    if (now > windowTime) {
+      daysUntilNext = 7;
+    }
+  } else if (daysUntilNext < 0) {
+    // Day has passed this week, schedule for next week
+    daysUntilNext += 7;
+  }
+  
+  const nextDate = new Date(now);
+  nextDate.setDate(now.getDate() + daysUntilNext);
+  nextDate.setHours(0, 0, 0, 0); // Reset to midnight for consistent date
+  
+  return nextDate;
+};
+
+// Helper to get day name from number
+export const getDayName = (dayOfWeek: number): string => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[dayOfWeek] || 'Unknown';
+};
+
+// Helper to format recurring schedule display
+export const formatRecurringSchedule = (dayOfWeek: number, windowStart: string, windowEnd: string): string => {
+  const dayName = getDayName(dayOfWeek);
+  return `Every ${dayName} ${windowStart} - ${windowEnd}`;
 };
