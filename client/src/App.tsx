@@ -11,6 +11,7 @@ import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Signup from "@/pages/signup";
 import CustomerPortal from "@/pages/customer-portal";
+import BookService from "@/pages/book-service";
 import TechnicianPortal from "@/pages/technician-portal";
 import AdminDashboard from "@/pages/admin-dashboard";
 import NotFound from "@/pages/not-found";
@@ -27,6 +28,12 @@ function Router() {
       <Route path="/portal">
         <ProtectedRoute allowedRoles={['customer']}>
           <CustomerPortal />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/portal/book">
+        <ProtectedRoute allowedRoles={['customer']}>
+          <BookService />
         </ProtectedRoute>
       </Route>
 

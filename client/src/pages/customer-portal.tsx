@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -431,9 +431,19 @@ export default function CustomerPortal() {
                   </div>
                 </div>
               ) : (
-                <p className="text-muted-foreground" data-testid="text-no-visits">
-                  No upcoming visits scheduled
-                </p>
+                <div className="space-y-4">
+                  <p className="text-muted-foreground" data-testid="text-no-visits">
+                    No upcoming visits scheduled
+                  </p>
+                  <Button 
+                    onClick={() => setLocation('/portal/book')}
+                    className="w-full"
+                    data-testid="button-book-new-service"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Book New Service
+                  </Button>
+                </div>
               )}
             </CardContent>
           </Card>
