@@ -17,10 +17,10 @@ The application employs a client-side Firebase architecture, with all database o
 ### Feature Specifications
 
 *   **Landing Page**: Hero section, "How It Works" guide, and calls to action.
-*   **Multi-Step Signup Flow**: Guides users through zip code validation, account creation, address and dog count input, and time slot selection. Includes a waitlist for non-serviced areas and automated quote calculation.
-*   **Customer Portal**: Allows customers to view upcoming/past visits, cancel/reschedule services, and send support messages.
+*   **Multi-Step Signup Flow**: Guides users through zip code validation, account creation, address and dog count input, and time slot selection (both recurring and one-time). Includes a waitlist for non-serviced areas and automated quote calculation.
+*   **Customer Portal**: Allows customers to view upcoming/past visits (displays recurring schedule with next service date), cancel/reschedule services to any available slot, and send support messages.
 *   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete.
-*   **Admin Dashboard**: Provides administrators with tools to manage service zip codes, create time slots, and oversee all visits and bookings.
+*   **Admin Dashboard**: Provides administrators with tools to manage service zip codes, create time slots (recurring and one-time), and oversee all visits and bookings.
 *   **Authentication & Security**: Implements Firebase Auth (email/password), role-based route protection, and Firestore Security Rules for data access control.
 
 ### System Design Choices
@@ -30,6 +30,12 @@ The application employs a client-side Firebase architecture, with all database o
 *   **Quote Calculation**: Based on a base price of $15 plus $5 for each additional dog.
 *   **Slot Booking**: Ensures data consistency and prevents overbooking using Firestore transactions.
 *   **Role Resolution**: Prioritizes `admin` role and checks both `customers` and `technicians` collections for user roles.
+*   **Recurring Schedules**: Supports both recurring monthly plans (same day/time every week) and one-time bookings:
+    *   **Recurring Slots**: Defined by `day_of_week` (0-6) and time window, with empty `date` field. Displayed as "Every [Day]" format.
+    *   **One-Time Slots**: Traditional date-based slots with specific calendar date.
+    *   **Visit Scheduling**: Uses `calculateNextServiceDate()` helper to compute next service date for recurring slots by finding next occurrence of target day and applying time window.
+    *   **Reschedule Flexibility**: Customers can reschedule any visit to any available slot (recurring or one-time, any day). This is a one-time change that doesn't affect future recurring visits.
+    *   **Data Integrity**: Visits store both `scheduled_for` timestamp and recurring metadata (`is_recurring`, `recurring_day_of_week`, `recurring_window_start`, `recurring_window_end`) to track schedule type.
 
 ## External Dependencies
 
