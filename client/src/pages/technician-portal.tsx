@@ -1,0 +1,263 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2, Calendar, CheckCircle2, LogOut, LayoutDashboard } from 'lucide-react';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { Visit, Customer, Slot } from '@shared/types';
+import { format } from 'date-fns';
+import { useLocation } from 'wouter';
+
+interface VisitWithDetails extends Visit {
+  customer: Customer;
+  slot: Slot;
+}
+
+export default function TechnicianPortal() {
+  const { user, role, signOut } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [loading, setLoading] = useState(true);
+  const [visits, setVisits] = useState<VisitWithDetails[]>([]);
+  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [updatingVisit, setUpdatingVisit] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadVisits();
+  }, [user, selectedDate]);
+
+  const loadVisits = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const visitsRef = collection(db, 'visits');
+      const q = query(
+        visitsRef,
+        where('status', '==', 'scheduled')
+      );
+      const visitsSnapshot = await getDocs(q);
+
+      const visitsWithDetails: VisitWithDetails[] = [];
+
+      for (const visitDoc of visitsSnapshot.docs) {
+        const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
+        
+        // Get slot
+        const slotDoc = await getDoc(doc(db, 'slots', visit.slot_id));
+        if (!slotDoc.exists()) continue;
+        const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
+
+        // Filter by selected date
+        if (slot.date !== selectedDate) continue;
+
+        // Get customer
+        const customerDoc = await getDoc(doc(db, 'customers', visit.customer_uid));
+        if (!customerDoc.exists()) continue;
+        const customer = { ...customerDoc.data(), uid: customerDoc.id } as Customer;
+
+        visitsWithDetails.push({
+          ...visit,
+          customer,
+          slot,
+        });
+      }
+
+      // Sort by time
+      visitsWithDetails.sort((a, b) => a.slot.window_start.localeCompare(b.slot.window_start));
+      setVisits(visitsWithDetails);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load visits',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkCompleted = async (visitId: string) => {
+    setUpdatingVisit(visitId);
+    try {
+      await updateDoc(doc(db, 'visits', visitId), {
+        status: 'completed',
+        updated_at: Timestamp.now(),
+      });
+
+      toast({
+        title: 'Visit Completed',
+        description: 'Visit marked as completed',
+      });
+
+      loadVisits();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update visit',
+      });
+    } finally {
+      setUpdatingVisit(null);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setLocation('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <h1 className="text-2xl font-bold" data-testid="heading-tech-portal">Technician Portal</h1>
+            <div className="flex items-center gap-4">
+              {role === 'admin' && (
+                <Button variant="outline" onClick={() => setLocation('/admin')} data-testid="button-admin-portal">
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Admin Portal
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid gap-6">
+          {/* Date Selector */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Select Date
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4">
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="max-w-xs"
+                  data-testid="input-date-filter"
+                />
+                <Button onClick={loadVisits} data-testid="button-refresh-visits">
+                  Refresh
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Visits Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Scheduled Visits</CardTitle>
+              <CardDescription>
+                Visits for {format(new Date(selectedDate), 'MMMM d, yyyy')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : visits.length === 0 ? (
+                <p className="text-muted-foreground text-center py-8" data-testid="text-no-visits">
+                  No scheduled visits for this date
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Address</TableHead>
+                      <TableHead>Dogs</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visits.map((visit) => (
+                      <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
+                        <TableCell>
+                          {visit.slot.window_start} - {visit.slot.window_end}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {visit.customer.name}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div>{visit.customer.address.street}</div>
+                            <div className="text-muted-foreground">
+                              {visit.customer.address.city}, {visit.customer.address.state}
+                            </div>
+                            {visit.customer.address.gate_code && (
+                              <div className="text-muted-foreground">
+                                Gate: {visit.customer.address.gate_code}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{visit.customer.dog_count}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="text-sm text-muted-foreground truncate">
+                            {visit.customer.address.notes || visit.notes || '-'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge>{visit.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="sm"
+                            onClick={() => handleMarkCompleted(visit.id)}
+                            disabled={updatingVisit === visit.id}
+                            data-testid={`button-complete-${visit.id}`}
+                          >
+                            {updatingVisit === visit.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Complete
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
