@@ -47,7 +47,7 @@ service cloud.firestore {
       // Allow admins to update everything, or allow authenticated users to increment/decrement booked_count
       allow update: if isAdmin() || 
         (isAuthenticated() && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['booked_count']) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['booked_count', 'updated_at']) &&
          (
            // Allow increment by 1 (booking)
            (request.resource.data.booked_count == resource.data.booked_count + 1 &&
