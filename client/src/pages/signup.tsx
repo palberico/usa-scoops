@@ -278,17 +278,6 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center px-4 py-8 bg-background">
-      {/* Back to Home Link */}
-      <Link href="/">
-        <Button 
-          variant="ghost" 
-          className="absolute top-4 left-4"
-          data-testid="button-back-home"
-        >
-          ← Back to Home
-        </Button>
-      </Link>
-
       {/* Logo */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2">
         <img src="/logo-full.png" alt="USA Scoops" className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto" data-testid="img-logo" />

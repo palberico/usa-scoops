@@ -291,7 +291,6 @@ None documented yet. Will update as preferences are communicated.
     * Step 4: Time slot selection
   - Moved phone number input from Step 1 to Step 3 ("Your Information")
   - Added large USA Scoops logo at top (h-40 → h-64 responsive sizing matching landing page)
-  - Added "Back to Home" button in top-left corner for easy navigation
   - Larger, more prominent CTAs and 4-segment progress indicator
   - Professional and fun aesthetic matching brand identity
   - Improved UX: Users can check service area before committing to account creation
