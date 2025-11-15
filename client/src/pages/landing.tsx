@@ -6,23 +6,17 @@ import heroImage from '@assets/generated_images/Clean_backyard_with_happy_dog_d6
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-end h-16 py-2">
-            <nav className="flex items-center gap-4">
-              <Link href="/login">
-                <Button variant="ghost" data-testid="button-login">
-                  Sign In
-                </Button>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      {/* Floating Sign In Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <Link href="/login">
+          <Button variant="outline" className="bg-background/95 backdrop-blur-sm" data-testid="button-login">
+            Sign In
+          </Button>
+        </Link>
+      </div>
 
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden mt-16">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img
@@ -35,13 +29,15 @@ export default function Landing() {
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Large Logo */}
-          <img 
-            src="/logo-full.png" 
-            alt="USA Scoops" 
-            className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto mx-auto mb-8"
-            data-testid="logo-image"
-          />
+          {/* Large Logo with White Circle Background */}
+          <div className="inline-block rounded-full bg-white p-6 sm:p-8 mb-8">
+            <img 
+              src="/logo-full.png" 
+              alt="USA Scoops" 
+              className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto"
+              data-testid="logo-image"
+            />
+          </div>
           
           <h1 
             className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6"
