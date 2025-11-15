@@ -283,9 +283,13 @@ None documented yet. Will update as preferences are communicated.
 
 - 2024-11-15: Portal Styling and Signup Enhancements
   - Increased zip code input font size to text-2xl with font-semibold for better visibility
-  - Enhanced customer portal cards with subtle gradients:
-    * Next Visit: primary-tinted gradient with border
-    * Visit History: muted gradient
+  - Redesigned customer portal header:
+    * White background with no border (both light and dark modes)
+    * Changed "Customer Portal" to "Hello {name}!" in navy blue
+    * Greeting has fallback chain: customer name → email username → "there"
+  - Enhanced customer portal cards with custom gradients:
+    * Next Visit: light navy to white gradient (HSL 210,100%,90% → white)
+    * Visit History: very light red to white gradient (red-50 → white)
     * Contact Us: blue-tinted gradient with border
   - Added icons to all portal card headers (Calendar, Clock, MessageSquare)
   - Added Clock icon next to time display in Next Visit card
