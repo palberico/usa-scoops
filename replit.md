@@ -209,11 +209,12 @@ README.md                # Deployment instructions
 
 ## Design System
 
-- **Primary Color**: Green (professional service brand)
+- **Primary Color**: Navy Blue (HSL 210 100% 25% light mode, HSL 210 85% 35% dark mode)
+- **Brand Identity**: Navy blue with red accents matching USA Scoops logo
 - **Font**: Roboto (Material Design standard)
 - **Components**: Shadcn UI with custom theming
 - **Responsive**: Mobile-first design
-- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation
+- **Accessibility**: ARIA labels, semantic HTML, keyboard navigation, password visibility toggles
 
 ## Business Logic
 
@@ -280,6 +281,14 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
+- 2024-11-15: Visual Rebranding
+  - Complete color scheme change from green to navy blue
+  - Updated primary color to HSL 210 100% 25% (light) and HSL 210 85% 35% (dark)
+  - Added USA Scoops logo (logo-icon.png and logo-full.png)
+  - Landing page header with larger logo (h-16) and branding text
+  - All buttons, focus rings, and UI elements now use navy blue theme
+  - Maintained accessibility with proper contrast ratios
+
 - 2024-11-15: Initial MVP implementation
   - Complete UI for all user roles
   - Firebase integration with auth and Firestore
@@ -288,3 +297,4 @@ None documented yet. Will update as preferences are communicated.
   - Firestore security rules
   - Timestamp handling fixes
   - Multi-role support (admin + technician)
+  - Password visibility toggles on login/signup pages
