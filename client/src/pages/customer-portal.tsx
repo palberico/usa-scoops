@@ -15,8 +15,15 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert } from 'lucide-react';
-import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp } from 'firebase/firestore';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Slot, Customer } from '@shared/types';
 import { format } from 'date-fns';
@@ -32,6 +39,11 @@ export default function CustomerPortal() {
   const [pastVisits, setPastVisits] = useState<Array<{ visit: Visit; slot: Slot }>>([]);
   const [messageForm, setMessageForm] = useState({ subject: '', body: '' });
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
+  const [selectedNewSlot, setSelectedNewSlot] = useState<Slot | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -132,6 +144,152 @@ export default function CustomerPortal() {
     setLocation('/');
   };
 
+  const loadAvailableSlots = async () => {
+    try {
+      const slotsRef = collection(db, 'slots');
+      const q = query(
+        slotsRef,
+        where('status', '==', 'open'),
+        orderBy('date', 'asc')
+      );
+      const slotsSnapshot = await getDocs(q);
+      
+      const now = new Date();
+      const slots: Slot[] = [];
+      
+      slotsSnapshot.forEach((slotDoc) => {
+        const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
+        const slotDate = new Date(slot.date);
+        
+        // Only show future slots with available capacity
+        if (slotDate > now && slot.booked_count < slot.capacity) {
+          slots.push(slot);
+        }
+      });
+      
+      setAvailableSlots(slots);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load available slots',
+      });
+    }
+  };
+
+  const handleCancelVisit = async () => {
+    if (!nextVisit) return;
+    
+    setActionLoading(true);
+    try {
+      const visitRef = doc(db, 'visits', nextVisit.visit.id);
+      const slotRef = doc(db, 'slots', nextVisit.slot.id);
+
+      // Run both updates in a single transaction for data consistency
+      await runTransaction(db, async (transaction) => {
+        const slotDoc = await transaction.get(slotRef);
+        
+        if (slotDoc.exists()) {
+          const currentCount = slotDoc.data().booked_count || 0;
+          transaction.update(slotRef, {
+            booked_count: Math.max(0, currentCount - 1),
+          });
+        }
+
+        transaction.update(visitRef, {
+          status: 'canceled',
+        });
+      });
+
+      toast({
+        title: 'Visit Canceled',
+        description: 'Your visit has been successfully canceled.',
+      });
+
+      setShowCancelDialog(false);
+      await loadData();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to cancel visit',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRescheduleVisit = async () => {
+    if (!nextVisit || !selectedNewSlot) return;
+    
+    setActionLoading(true);
+    try {
+      const oldSlotRef = doc(db, 'slots', nextVisit.slot.id);
+      const newSlotRef = doc(db, 'slots', selectedNewSlot.id);
+      const visitRef = doc(db, 'visits', nextVisit.visit.id);
+
+      await runTransaction(db, async (transaction) => {
+        const oldSlotDoc = await transaction.get(oldSlotRef);
+        const newSlotDoc = await transaction.get(newSlotRef);
+
+        if (!newSlotDoc.exists()) {
+          throw new Error('Selected slot no longer exists');
+        }
+
+        const newSlotData = newSlotDoc.data();
+        if (newSlotData.booked_count >= newSlotData.capacity) {
+          throw new Error('Selected slot is now full');
+        }
+
+        // Decrement old slot count
+        if (oldSlotDoc.exists()) {
+          const oldCount = oldSlotDoc.data().booked_count || 0;
+          transaction.update(oldSlotRef, {
+            booked_count: Math.max(0, oldCount - 1),
+          });
+        }
+
+        // Increment new slot count
+        transaction.update(newSlotRef, {
+          booked_count: newSlotData.booked_count + 1,
+        });
+
+        // Convert slot date and time to Firestore Timestamp
+        // Combine date (YYYY-MM-DD) with window_start time (HH:mm)
+        const dateTimeString = `${selectedNewSlot.date}T${selectedNewSlot.window_start}:00`;
+        const scheduledTimestamp = Timestamp.fromDate(new Date(dateTimeString));
+
+        // Update visit with new slot
+        transaction.update(visitRef, {
+          slot_id: selectedNewSlot.id,
+          scheduled_for: scheduledTimestamp,
+        });
+      });
+
+      toast({
+        title: 'Visit Rescheduled',
+        description: 'Your visit has been successfully rescheduled.',
+      });
+
+      setShowRescheduleDialog(false);
+      setSelectedNewSlot(null);
+      await loadData();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to reschedule visit',
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openRescheduleDialog = async () => {
+    setShowRescheduleDialog(true);
+    await loadAvailableSlots();
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
       scheduled: 'default',
@@ -179,7 +337,7 @@ export default function CustomerPortal() {
             </CardHeader>
             <CardContent>
               {nextVisit ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold text-lg" data-testid="text-visit-date">
@@ -198,11 +356,27 @@ export default function CustomerPortal() {
                       {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
                     </span>
                   </div>
-                  <div className="flex items-start gap-2 text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 p-3 rounded-lg mt-3 border border-amber-500/20">
-                    <ShieldAlert className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span data-testid="text-security-note">
-                      Please make sure your dog is secure before our technician arrives.
-                    </span>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={openRescheduleDialog}
+                      className="flex-1"
+                      data-testid="button-reschedule"
+                    >
+                      <CalendarClock className="h-4 w-4 mr-2" />
+                      Reschedule
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelDialog(true)}
+                      className="flex-1"
+                      data-testid="button-cancel"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -212,6 +386,16 @@ export default function CustomerPortal() {
               )}
             </CardContent>
           </Card>
+
+          {/* Security Note */}
+          {nextVisit && (
+            <div className="flex items-start gap-2 text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 p-4 rounded-lg border border-amber-500/20">
+              <ShieldAlert className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <span data-testid="text-security-note">
+                Please make sure your dog is secure before our technician arrives.
+              </span>
+            </div>
+          )}
 
           {/* Visit History */}
           <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
@@ -307,6 +491,117 @@ export default function CustomerPortal() {
           </Card>
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent data-testid="modal-cancel">
+          <DialogHeader>
+            <DialogTitle>Cancel Visit</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel your scheduled visit? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowCancelDialog(false)}
+              disabled={actionLoading}
+              data-testid="button-cancel-no"
+            >
+              No, Keep It
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleCancelVisit}
+              disabled={actionLoading}
+              data-testid="button-cancel-yes"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Canceling...
+                </>
+              ) : (
+                'Yes, Cancel Visit'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reschedule Dialog */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent className="max-w-2xl" data-testid="modal-reschedule">
+          <DialogHeader>
+            <DialogTitle>Reschedule Visit</DialogTitle>
+            <DialogDescription>
+              Select a new time slot for your service visit
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {availableSlots.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">
+                No available time slots at the moment. Please check back later or contact us.
+              </p>
+            ) : (
+              <div className="grid gap-2">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    onClick={() => setSelectedNewSlot(slot)}
+                    className={`p-4 border rounded-lg text-left hover-elevate ${
+                      selectedNewSlot?.id === slot.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border'
+                    }`}
+                    data-testid={`slot-option-${slot.id}`}
+                  >
+                    <div className="font-semibold">
+                      {format(new Date(slot.date), 'EEEE, MMMM d, yyyy')}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {slot.window_start} - {slot.window_end}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {slot.capacity - slot.booked_count} of {slot.capacity} spots left
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRescheduleDialog(false);
+                setSelectedNewSlot(null);
+              }}
+              disabled={actionLoading}
+              data-testid="button-reschedule-cancel"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRescheduleVisit}
+              disabled={!selectedNewSlot || actionLoading}
+              data-testid="button-reschedule-confirm"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Rescheduling...
+                </>
+              ) : (
+                'Confirm Reschedule'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
