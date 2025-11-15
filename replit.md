@@ -281,11 +281,18 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
+- 2024-11-15: Landing Page Header Improvements
+  - Increased logo size to h-20 for much better visibility
+  - Increased header height to h-24 to accommodate larger logo
+  - Removed "Get Started" button from header, kept only "Sign In"
+  - Made hero "Get Started Today" button darker navy blue (#003366)
+  - Improved overall header design and prominence
+
 - 2024-11-15: Visual Rebranding
   - Complete color scheme change from green to navy blue
   - Updated primary color to HSL 210 100% 25% (light) and HSL 210 85% 35% (dark)
   - Added USA Scoops logo (logo-icon.png and logo-full.png)
-  - Landing page header with larger logo (h-16) and branding text
+  - Landing page header with larger logo and branding text
   - All buttons, focus rings, and UI elements now use navy blue theme
   - Maintained accessibility with proper contrast ratios
 
