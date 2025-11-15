@@ -11,7 +11,7 @@ import { collection, query, where, getDocs, addDoc, doc, getDoc, runTransaction,
 import { db } from '@/lib/firebase';
 import { calculateQuote } from '@shared/types';
 import type { Slot } from '@shared/types';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 export default function Signup() {
   const [, setLocation] = useLocation();
@@ -200,14 +200,26 @@ export default function Signup() {
           throw new Error('Slot is full');
         }
 
-        // Create visit
+        // Create visit - parse date and time using date-fns for reliability
+        const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
+        const scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+        
+        // Validate the date is valid
+        if (isNaN(scheduledDate.getTime())) {
+          console.error('Invalid date:', {
+            date: selectedSlot.date,
+            time: selectedSlot.window_start,
+            combined: dateTimeString,
+          });
+          throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+        }
+        
         const visitData = {
           customer_uid: currentUser.uid,
           slot_id: selectedSlot.id,
-          scheduled_for: Timestamp.fromDate(
-            new Date(`${selectedSlot.date}T${selectedSlot.window_start}:00`)
-          ),
+          scheduled_for: Timestamp.fromDate(scheduledDate),
           status: 'scheduled',
+          notes: '',
           created_at: Timestamp.now(),
           updated_at: Timestamp.now(),
         };
