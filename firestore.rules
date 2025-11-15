@@ -44,13 +44,19 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAdmin();
       allow delete: if isAdmin();
-      // Allow admins to update everything, or allow authenticated users to increment booked_count only
+      // Allow admins to update everything, or allow authenticated users to increment/decrement booked_count
       allow update: if isAdmin() || 
         (isAuthenticated() && 
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['booked_count', 'updated_at']) &&
-         request.resource.data.booked_count == resource.data.booked_count + 1 &&
-         request.resource.data.booked_count <= resource.data.capacity &&
-         request.resource.data.updated_at == request.time);
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['booked_count']) &&
+         (
+           // Allow increment by 1 (booking)
+           (request.resource.data.booked_count == resource.data.booked_count + 1 &&
+            request.resource.data.booked_count <= resource.data.capacity) ||
+           // Allow decrement by 1 (cancel/reschedule)
+           (request.resource.data.booked_count == resource.data.booked_count - 1 &&
+            request.resource.data.booked_count >= 0)
+         )
+        );
     }
     
     // Visits
