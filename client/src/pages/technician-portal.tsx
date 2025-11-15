@@ -53,10 +53,12 @@ export default function TechnicianPortal() {
       const visitsSnapshot = await getDocs(q);
 
       const visitsWithDetails: VisitWithDetails[] = [];
-      const selectedDateObj = new Date(selectedDate);
-      selectedDateObj.setHours(0, 0, 0, 0);
-      const nextDay = new Date(selectedDateObj);
-      nextDay.setDate(nextDay.getDate() + 1);
+      // Parse date string as local date (not UTC)
+      // HTML date input gives "YYYY-MM-DD" which new Date() interprets as UTC midnight
+      // We need to create a local date at midnight instead
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const selectedDateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
+      const nextDay = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
 
       for (const visitDoc of visitsSnapshot.docs) {
         const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
