@@ -246,40 +246,17 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      // Create Firebase Auth user and customer document
-      const userData: any = {
-        name: formData.name,
-        phone: formData.phone,
-        address: {
-          street: formData.street,
-          city: formData.city,
-          state: formData.state,
-          zip: formData.zip,
-        },
-        dog_count: formData.dog_count,
-      };
-      
-      // Only add optional fields if they have values
-      if (formData.gate_code?.trim()) {
-        userData.address.gate_code = formData.gate_code;
-      }
-      if (formData.notes?.trim()) {
-        userData.address.notes = formData.notes;
-      }
-      
-      await signUp(formData.email, formData.password, userData);
-
-      // Book the slot using a transaction
-      const slotRef = doc(db, 'slots', selectedSlot.id);
-      const visitRef = collection(db, 'visits');
-
-      // Get current user (available after signUp completes)
+      // Get current user (already authenticated from step 2)
       const { auth } = await import('@/lib/firebase');
       const currentUser = auth.currentUser;
       
       if (!currentUser) {
-        throw new Error('User not authenticated');
+        throw new Error('User not authenticated. Please go back and create your account.');
       }
+
+      // Book the slot using a transaction
+      const slotRef = doc(db, 'slots', selectedSlot.id);
+      const visitRef = collection(db, 'visits');
 
       await runTransaction(db, async (transaction) => {
         const slotDoc = await transaction.get(slotRef);
