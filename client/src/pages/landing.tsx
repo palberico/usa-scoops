@@ -9,12 +9,12 @@ export default function Landing() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-24 py-2">
             <div className="flex items-center gap-4">
               <img 
                 src="/logo-icon.png" 
                 alt="USA Scoops" 
-                className="h-16 w-auto"
+                className="h-20 w-auto"
                 data-testid="logo-image"
               />
               <span className="text-2xl font-bold" style={{ color: '#003366' }}>
@@ -27,18 +27,13 @@ export default function Landing() {
                   Sign In
                 </Button>
               </Link>
-              <Link href="/signup">
-                <Button data-testid="button-get-started-header">
-                  Get Started
-                </Button>
-              </Link>
             </nav>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden mt-16">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden mt-24">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img
@@ -63,7 +58,8 @@ export default function Landing() {
           <Link href="/signup">
             <Button 
               size="lg" 
-              className="h-14 px-8 text-lg bg-primary/90 backdrop-blur-md hover:bg-primary border-2 border-primary-foreground/20"
+              className="h-14 px-8 text-lg border-2 border-primary-foreground/20"
+              style={{ backgroundColor: '#003366' }}
               data-testid="button-get-started-hero"
             >
               Get Started Today
