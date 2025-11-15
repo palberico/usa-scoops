@@ -158,8 +158,24 @@ export default function CustomerPortal() {
       const now = new Date();
       const slots: Slot[] = [];
       
+      // If rescheduling a recurring visit, only show same-day-of-week recurring slots
+      const isReschedulingRecurring = nextVisit?.visit.is_recurring;
+      const recurringDayOfWeek = nextVisit?.visit.recurring_day_of_week;
+      
       slotsSnapshot.forEach((slotDoc) => {
         const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
+        
+        // For recurring visits, only show recurring slots with same day of week
+        if (isReschedulingRecurring) {
+          // Skip non-recurring slots when rescheduling a recurring visit
+          if (!slot.is_recurring) {
+            return;
+          }
+          // Skip recurring slots with different day of week
+          if (slot.day_of_week !== recurringDayOfWeek) {
+            return;
+          }
+        }
         
         // For recurring slots, check if they have capacity
         // For one-time slots, check if date is in future
