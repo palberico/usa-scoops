@@ -9,18 +9,23 @@ export default function Landing() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-24 py-2">
-            <div className="flex items-center gap-4">
+          {/* Top Row - Logo and Brand */}
+          <div className="flex items-center justify-center py-4 border-b border-border/50">
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
               <img 
                 src="/logo-icon.png" 
                 alt="USA Scoops" 
-                className="h-20 w-auto"
+                className="h-32 sm:h-36 md:h-40 w-auto"
                 data-testid="logo-image"
               />
-              <span className="text-2xl font-bold" style={{ color: '#003366' }}>
+              <span className="text-3xl sm:text-4xl md:text-5xl font-bold" style={{ color: '#003366' }}>
                 USA Scoops
               </span>
             </div>
+          </div>
+          
+          {/* Bottom Row - Navigation */}
+          <div className="flex items-center justify-end py-3">
             <nav className="flex items-center gap-4">
               <Link href="/login">
                 <Button variant="ghost" data-testid="button-login">
@@ -33,7 +38,7 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden mt-24">
+      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden mt-60 sm:mt-64 md:mt-72">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img
