@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, MapPin, Home, Dog } from 'lucide-react';
-import { collection, query, where, getDocs, addDoc, doc, getDoc, runTransaction, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, getDoc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { calculateQuote } from '@shared/types';
 import type { Slot } from '@shared/types';
@@ -230,7 +230,7 @@ export default function Signup() {
         // Increment booked_count
         transaction.update(slotRef, {
           booked_count: slotData.booked_count + 1,
-          updated_at: Timestamp.now(),
+          updated_at: serverTimestamp(),
         });
       });
 
