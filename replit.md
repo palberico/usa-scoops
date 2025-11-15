@@ -295,6 +295,17 @@ None documented yet. Will update as preferences are communicated.
   - Professional and fun aesthetic matching brand identity
   - Improved UX: Users can check service area before committing to account creation
 
+- 2024-11-15: Enhanced Waitlist Flow
+  - When zip code is not in service area, modal now displays "Service area is not yet available"
+  - Two-step waitlist process:
+    * Initial modal offers "Join Waitlist" or "Maybe Later" buttons
+    * "Maybe Later" returns user to landing page
+    * "Join Waitlist" opens form to collect name and email
+  - Waitlist form does NOT create an account
+  - Saves to waitlist collection (name, zip, email, created_at)
+  - Success confirmation toast and redirect to home after submission
+  - Uses serverTimestamp() for Firestore compatibility
+
 - 2024-11-15: Headerless Hero with Floating Navigation
   - Removed header completely for immersive hero experience
   - Sign In button relocated to hero section next to "Get Started Today" button

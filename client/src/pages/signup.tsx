@@ -22,8 +22,15 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showWaitlistModal, setShowWaitlistModal] = useState(false);
+  const [showWaitlistForm, setShowWaitlistForm] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  
+  const [waitlistData, setWaitlistData] = useState({
+    name: '',
+    email: '',
+  });
   
   const [formData, setFormData] = useState({
     // Step 1: Zip only
@@ -53,12 +60,8 @@ export default function Signup() {
       const snapshot = await getDocs(q);
 
       if (snapshot.empty) {
-        // Not in service area - show waitlist option
-        toast({
-          variant: 'destructive',
-          title: 'Service Area Not Available',
-          description: 'We don\'t service this area yet, but you can join our waitlist!',
-        });
+        // Not in service area - show waitlist modal
+        setShowWaitlistModal(true);
       } else {
         // In service area - show success modal
         setShowSuccessModal(true);
@@ -80,9 +83,23 @@ export default function Signup() {
     setStep(2);
   };
 
+  // Handle "Maybe Later" button - close modal and go home
+  const handleMaybeLater = () => {
+    setShowWaitlistModal(false);
+    setShowWaitlistForm(false);
+    setLocation('/');
+  };
+
+  // Handle "Join Waitlist" button - show form
+  const handleJoinWaitlistClick = () => {
+    setShowWaitlistForm(true);
+  };
+
   // Waitlist Submission
-  const handleWaitlist = async () => {
-    if (!formData.name || !formData.email) {
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!waitlistData.name || !waitlistData.email) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
@@ -94,18 +111,21 @@ export default function Signup() {
     setLoading(true);
     try {
       await addDoc(collection(db, 'waitlist'), {
-        name: formData.name,
-        email: formData.email,
+        name: waitlistData.name,
+        email: waitlistData.email,
         zip: formData.zip,
-        created_at: Timestamp.now(),
+        created_at: serverTimestamp(),
       });
 
       toast({
-        title: 'Added to Waitlist',
+        title: 'Added to Waitlist!',
         description: 'We\'ll notify you when we expand to your area!',
       });
 
-      setTimeout(() => setLocation('/'), 2000);
+      // Close modal and redirect to home
+      setShowWaitlistModal(false);
+      setShowWaitlistForm(false);
+      setTimeout(() => setLocation('/'), 1500);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -300,6 +320,92 @@ export default function Signup() {
           <Button onClick={handleModalContinue} className="w-full" data-testid="button-modal-continue">
             Continue to Create Account
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Waitlist Modal */}
+      <Dialog open={showWaitlistModal} onOpenChange={setShowWaitlistModal}>
+        <DialogContent className="sm:max-w-md" data-testid="modal-waitlist">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Service area is not yet available</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              We're not in your area yet, but we're expanding! Join our waitlist to be notified when we arrive.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {!showWaitlistForm ? (
+            <div className="flex flex-col gap-3 mt-4">
+              <Button 
+                onClick={handleJoinWaitlistClick} 
+                className="w-full"
+                data-testid="button-join-waitlist"
+              >
+                Join Waitlist
+              </Button>
+              <Button 
+                onClick={handleMaybeLater} 
+                variant="outline"
+                className="w-full"
+                data-testid="button-maybe-later"
+              >
+                Maybe Later
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleWaitlistSubmit} className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="waitlist-name">Name</Label>
+                <Input
+                  id="waitlist-name"
+                  value={waitlistData.name}
+                  onChange={(e) => setWaitlistData({ ...waitlistData, name: e.target.value })}
+                  placeholder="John Doe"
+                  required
+                  data-testid="input-waitlist-name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="waitlist-email">Email</Label>
+                <Input
+                  id="waitlist-email"
+                  type="email"
+                  value={waitlistData.email}
+                  onChange={(e) => setWaitlistData({ ...waitlistData, email: e.target.value })}
+                  placeholder="john@example.com"
+                  required
+                  data-testid="input-waitlist-email"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={loading}
+                  data-testid="button-submit-waitlist"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Joining...
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={() => setShowWaitlistForm(false)} 
+                  variant="ghost"
+                  className="w-full"
+                  data-testid="button-cancel-waitlist"
+                >
+                  Back
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
