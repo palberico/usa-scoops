@@ -281,6 +281,18 @@ None documented yet. Will update as preferences are communicated.
 
 ## Recent Changes
 
+- 2024-11-15: Portal Styling and Signup Enhancements
+  - Increased zip code input font size to text-2xl with font-semibold for better visibility
+  - Enhanced customer portal cards with subtle gradients:
+    * Next Visit: primary-tinted gradient with border
+    * Visit History: muted gradient
+    * Contact Us: blue-tinted gradient with border
+  - Added icons to all portal card headers (Calendar, Clock, MessageSquare)
+  - Added Clock icon next to time display in Next Visit card
+  - Added security alert under Next Visit card: "Please make sure your dog is secure before our technician arrives"
+  - Security note uses amber color scheme with ShieldAlert icon
+  - All gradients and colors maintain dark mode compatibility
+
 - 2024-11-15: UX Improvements and Booking Flow Refactor
   - Reduced logo circle padding on landing page for tighter appearance (p-4 sm:p-6)
   - Added back button on signup step 1 to navigate to home
