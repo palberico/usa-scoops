@@ -155,7 +155,7 @@ export default function Signup() {
     setLoading(true);
     try {
       // Create Firebase Auth user and customer document
-      await signUp(formData.email, formData.password, {
+      const userData: any = {
         name: formData.name,
         phone: formData.phone,
         address: {
@@ -163,11 +163,19 @@ export default function Signup() {
           city: formData.city,
           state: formData.state,
           zip: formData.zip,
-          gate_code: formData.gate_code || undefined,
-          notes: formData.notes || undefined,
         },
         dog_count: formData.dog_count,
-      });
+      };
+      
+      // Only add optional fields if they have values
+      if (formData.gate_code?.trim()) {
+        userData.address.gate_code = formData.gate_code;
+      }
+      if (formData.notes?.trim()) {
+        userData.address.notes = formData.notes;
+      }
+      
+      await signUp(formData.email, formData.password, userData);
 
       // Book the slot using a transaction
       const slotRef = doc(db, 'slots', selectedSlot.id);

@@ -86,10 +86,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
+      // Helper function to remove undefined values
+      const removeUndefined = (obj: any): any => {
+        if (Array.isArray(obj)) {
+          return obj.map(removeUndefined);
+        }
+        if (obj !== null && typeof obj === 'object') {
+          return Object.entries(obj).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = removeUndefined(value);
+            }
+            return acc;
+          }, {} as any);
+        }
+        return obj;
+      };
+      
       // Create customer document in Firestore
       const { Timestamp } = await import('firebase/firestore');
+      const cleanUserData = removeUndefined(userData);
+      
       await setDoc(doc(db, 'customers', userCredential.user.uid), {
-        ...userData,
+        ...cleanUserData,
         uid: userCredential.user.uid,
         email,
         role: 'customer',
