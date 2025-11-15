@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Slot, Customer } from '@shared/types';
@@ -173,22 +173,23 @@ export default function CustomerPortal() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid gap-6">
           {/* Next Visit Card */}
-          <Card data-testid="card-next-visit">
+          <Card className="bg-gradient-to-br from-primary/5 via-background to-background border-primary/20" data-testid="card-next-visit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
+                <Calendar className="h-5 w-5 text-primary" />
                 Next Scheduled Visit
               </CardTitle>
             </CardHeader>
             <CardContent>
               {nextVisit ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-semibold text-lg" data-testid="text-visit-date">
                         {format(nextVisit.visit.scheduled_for.toDate(), 'EEEE, MMMM d, yyyy')}
                       </p>
-                      <p className="text-muted-foreground" data-testid="text-visit-time">
+                      <p className="text-muted-foreground flex items-center gap-1.5" data-testid="text-visit-time">
+                        <Clock className="h-4 w-4" />
                         {nextVisit.slot.window_start} - {nextVisit.slot.window_end}
                       </p>
                     </div>
@@ -198,6 +199,12 @@ export default function CustomerPortal() {
                     <MapPin className="h-4 w-4 mt-0.5" />
                     <span data-testid="text-visit-address">
                       {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-sm bg-amber-500/10 text-amber-700 dark:text-amber-400 p-3 rounded-lg mt-3 border border-amber-500/20">
+                    <ShieldAlert className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span data-testid="text-security-note">
+                      Please make sure your dog is secure before our technician arrives.
                     </span>
                   </div>
                 </div>
@@ -210,9 +217,12 @@ export default function CustomerPortal() {
           </Card>
 
           {/* Visit History */}
-          <Card>
+          <Card className="bg-gradient-to-br from-muted/30 via-background to-background">
             <CardHeader>
-              <CardTitle>Visit History</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Visit History
+              </CardTitle>
               <CardDescription>Your past service visits</CardDescription>
             </CardHeader>
             <CardContent>
@@ -248,10 +258,10 @@ export default function CustomerPortal() {
           </Card>
 
           {/* Contact Form */}
-          <Card>
+          <Card className="bg-gradient-to-br from-blue-500/5 via-background to-background border-blue-500/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5 text-primary" />
                 Contact Us
               </CardTitle>
               <CardDescription>Send us a message</CardDescription>

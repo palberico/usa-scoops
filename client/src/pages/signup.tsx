@@ -554,7 +554,7 @@ export default function Signup() {
                   maxLength={5}
                   placeholder="12345"
                   required
-                  className="h-12 text-lg text-center"
+                  className="h-14 text-2xl text-center font-semibold"
                   data-testid="input-zip"
                 />
                 <p className="text-sm text-muted-foreground text-center">
