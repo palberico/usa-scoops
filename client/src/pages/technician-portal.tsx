@@ -45,24 +45,32 @@ export default function TechnicianPortal() {
     setLoading(true);
     try {
       const visitsRef = collection(db, 'visits');
+      // Load both scheduled and completed visits (optimized query)
       const q = query(
         visitsRef,
-        where('status', '==', 'scheduled')
+        where('status', 'in', ['scheduled', 'completed'])
       );
       const visitsSnapshot = await getDocs(q);
 
       const visitsWithDetails: VisitWithDetails[] = [];
+      const selectedDateObj = new Date(selectedDate);
+      selectedDateObj.setHours(0, 0, 0, 0);
+      const nextDay = new Date(selectedDateObj);
+      nextDay.setDate(nextDay.getDate() + 1);
 
       for (const visitDoc of visitsSnapshot.docs) {
         const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
         
+        // Filter by selected date using range check (handles UTC/timezone issues)
+        const visitTimestamp = visit.scheduled_for.toDate().getTime();
+        if (visitTimestamp < selectedDateObj.getTime() || visitTimestamp >= nextDay.getTime()) {
+          continue;
+        }
+
         // Get slot
         const slotDoc = await getDoc(doc(db, 'slots', visit.slot_id));
         if (!slotDoc.exists()) continue;
         const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
-
-        // Filter by selected date
-        if (slot.date !== selectedDate) continue;
 
         // Get customer
         const customerDoc = await getDoc(doc(db, 'customers', visit.customer_uid));
@@ -76,8 +84,10 @@ export default function TechnicianPortal() {
         });
       }
 
-      // Sort by time
-      visitsWithDetails.sort((a, b) => a.slot.window_start.localeCompare(b.slot.window_start));
+      // Sort by scheduled_for time
+      visitsWithDetails.sort((a, b) => 
+        a.scheduled_for.toDate().getTime() - b.scheduled_for.toDate().getTime()
+      );
       setVisits(visitsWithDetails);
     } catch (error: any) {
       toast({
@@ -192,65 +202,78 @@ export default function TechnicianPortal() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Time</TableHead>
+                      <TableHead>Time Window</TableHead>
                       <TableHead>Customer</TableHead>
+                      <TableHead>Phone</TableHead>
                       <TableHead>Address</TableHead>
                       <TableHead>Dogs</TableHead>
                       <TableHead>Notes</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visits.map((visit) => (
-                      <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
-                        <TableCell>
-                          {visit.slot.window_start} - {visit.slot.window_end}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {visit.customer.name}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div>{visit.customer.address.street}</div>
-                            <div className="text-muted-foreground">
-                              {visit.customer.address.city}, {visit.customer.address.state}
-                            </div>
-                            {visit.customer.address.gate_code && (
+                    {visits.map((visit) => {
+                      // Fallback to slot window times if recurring times not set
+                      const windowStart = visit.recurring_window_start || visit.slot.window_start;
+                      const windowEnd = visit.recurring_window_end || visit.slot.window_end;
+                      
+                      return (
+                        <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
+                          <TableCell className="font-medium" data-testid={`text-time-${visit.id}`}>
+                            {windowStart} - {windowEnd}
+                          </TableCell>
+                          <TableCell className="font-medium" data-testid={`text-customer-${visit.id}`}>
+                            {visit.customer.name}
+                          </TableCell>
+                          <TableCell data-testid={`text-phone-${visit.id}`}>
+                            {visit.customer.phone}
+                          </TableCell>
+                          <TableCell data-testid={`text-address-${visit.id}`}>
+                            <div className="text-sm">
+                              <div className="font-medium">{visit.customer.address.street}</div>
                               <div className="text-muted-foreground">
-                                Gate: {visit.customer.address.gate_code}
+                                {visit.customer.address.city}, {visit.customer.address.state} {visit.customer.address.zip}
                               </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{visit.customer.dog_count}</TableCell>
-                        <TableCell className="max-w-xs">
-                          <div className="text-sm text-muted-foreground truncate">
-                            {visit.customer.address.notes || visit.notes || '-'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge>{visit.status}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            onClick={() => handleMarkCompleted(visit.id)}
-                            disabled={updatingVisit === visit.id}
-                            data-testid={`button-complete-${visit.id}`}
-                          >
-                            {updatingVisit === visit.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              {visit.customer.address.gate_code && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Gate Code: <span className="font-mono font-semibold">{visit.customer.address.gate_code}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell data-testid={`text-dogs-${visit.id}`}>{visit.customer.dog_count}</TableCell>
+                          <TableCell className="max-w-xs" data-testid={`text-notes-${visit.id}`}>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {visit.customer.address.notes || visit.notes || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {visit.status === 'completed' ? (
+                              <Badge variant="secondary" data-testid={`badge-completed-${visit.id}`}>
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completed
+                              </Badge>
                             ) : (
-                              <>
-                                <CheckCircle2 className="h-4 w-4 mr-2" />
-                                Complete
-                              </>
+                              <Button
+                                size="sm"
+                                onClick={() => handleMarkCompleted(visit.id)}
+                                disabled={updatingVisit === visit.id}
+                                data-testid={`button-complete-${visit.id}`}
+                              >
+                                {updatingVisit === visit.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Complete
+                                  </>
+                                )}
+                              </Button>
                             )}
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
