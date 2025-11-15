@@ -145,7 +145,14 @@ export const calculateNextServiceDate = (dayOfWeek: number, windowStart?: string
   
   const nextDate = new Date(now);
   nextDate.setDate(now.getDate() + daysUntilNext);
-  nextDate.setHours(0, 0, 0, 0); // Reset to midnight for consistent date
+  
+  // Set the time to the window start time
+  if (windowStart) {
+    const [hours, minutes] = windowStart.split(':').map(Number);
+    nextDate.setHours(hours, minutes, 0, 0);
+  } else {
+    nextDate.setHours(0, 0, 0, 0);
+  }
   
   return nextDate;
 };

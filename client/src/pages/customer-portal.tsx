@@ -26,6 +26,7 @@ import {
 import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Slot, Customer } from '@shared/types';
+import { getDayName, calculateNextServiceDate } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
 
@@ -159,10 +160,18 @@ export default function CustomerPortal() {
       
       slotsSnapshot.forEach((slotDoc) => {
         const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
-        const slotDate = new Date(slot.date);
         
-        // Only show future slots with available capacity
-        if (slotDate > now && slot.booked_count < slot.capacity) {
+        // For recurring slots, check if they have capacity
+        // For one-time slots, check if date is in future
+        let shouldInclude = false;
+        if (slot.is_recurring) {
+          shouldInclude = slot.booked_count < slot.capacity;
+        } else {
+          const slotDate = new Date(slot.date);
+          shouldInclude = slotDate > now && slot.booked_count < slot.capacity;
+        }
+        
+        if (shouldInclude) {
           slots.push(slot);
         }
       });
@@ -255,15 +264,38 @@ export default function CustomerPortal() {
         });
 
         // Convert slot date and time to Firestore Timestamp
-        // Combine date (YYYY-MM-DD) with window_start time (HH:mm)
-        const dateTimeString = `${selectedNewSlot.date}T${selectedNewSlot.window_start}:00`;
-        const scheduledTimestamp = Timestamp.fromDate(new Date(dateTimeString));
+        let scheduledDate: Date;
+        if (selectedNewSlot.is_recurring) {
+          // For recurring slots, calculate next service date
+          scheduledDate = calculateNextServiceDate(selectedNewSlot.day_of_week || 0, selectedNewSlot.window_start);
+        } else {
+          // For one-time slots, combine date (YYYY-MM-DD) with window_start time (HH:mm)
+          const dateTimeString = `${selectedNewSlot.date}T${selectedNewSlot.window_start}:00`;
+          scheduledDate = new Date(dateTimeString);
+        }
+        
+        const scheduledTimestamp = Timestamp.fromDate(scheduledDate);
 
-        // Update visit with new slot
-        transaction.update(visitRef, {
+        // Update visit with new slot and recurring information
+        const visitUpdate: any = {
           slot_id: selectedNewSlot.id,
           scheduled_for: scheduledTimestamp,
-        });
+        };
+        
+        // Add or remove recurring information based on new slot type
+        if (selectedNewSlot.is_recurring) {
+          visitUpdate.is_recurring = true;
+          visitUpdate.recurring_day_of_week = selectedNewSlot.day_of_week;
+          visitUpdate.recurring_window_start = selectedNewSlot.window_start;
+          visitUpdate.recurring_window_end = selectedNewSlot.window_end;
+        } else {
+          visitUpdate.is_recurring = false;
+          visitUpdate.recurring_day_of_week = null;
+          visitUpdate.recurring_window_start = null;
+          visitUpdate.recurring_window_end = null;
+        }
+        
+        transaction.update(visitRef, visitUpdate);
       });
 
       toast({
@@ -559,7 +591,16 @@ export default function CustomerPortal() {
                     data-testid={`slot-option-${slot.id}`}
                   >
                     <div className="font-semibold">
-                      {format(new Date(slot.date), 'EEEE, MMMM d, yyyy')}
+                      {slot.is_recurring ? (
+                        <div>
+                          <div>Every {getDayName(slot.day_of_week || 0)}</div>
+                          <div className="text-sm font-normal text-muted-foreground">
+                            Next: {format(calculateNextServiceDate(slot.day_of_week || 0, slot.window_start), 'MMM d, yyyy')}
+                          </div>
+                        </div>
+                      ) : (
+                        format(new Date(slot.date), 'EEEE, MMMM d, yyyy')
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {slot.window_start} - {slot.window_end}

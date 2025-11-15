@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, MapPin, Home, Dog, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { calculateQuote } from '@shared/types';
+import { calculateQuote, getDayName, calculateNextServiceDate } from '@shared/types';
 import type { Slot } from '@shared/types';
 import { format, parse } from 'date-fns';
 
@@ -292,21 +292,28 @@ export default function Signup() {
           throw new Error('Slot is full');
         }
 
-        // Create visit - parse date and time using date-fns for reliability
-        const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
-        const scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-        
-        // Validate the date is valid
-        if (isNaN(scheduledDate.getTime())) {
-          console.error('Invalid date:', {
-            date: selectedSlot.date,
-            time: selectedSlot.window_start,
-            combined: dateTimeString,
-          });
-          throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+        // Create visit - calculate scheduled date based on slot type
+        let scheduledDate: Date;
+        if (selectedSlot.is_recurring) {
+          // For recurring slots, calculate next service date
+          scheduledDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
+        } else {
+          // For one-time slots, parse date and time using date-fns
+          const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
+          scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+          
+          // Validate the date is valid
+          if (isNaN(scheduledDate.getTime())) {
+            console.error('Invalid date:', {
+              date: selectedSlot.date,
+              time: selectedSlot.window_start,
+              combined: dateTimeString,
+            });
+            throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+          }
         }
         
-        const visitData = {
+        const visitData: any = {
           customer_uid: currentUser.uid,
           slot_id: selectedSlot.id,
           scheduled_for: Timestamp.fromDate(scheduledDate),
@@ -315,6 +322,14 @@ export default function Signup() {
           created_at: Timestamp.now(),
           updated_at: Timestamp.now(),
         };
+        
+        // Add recurring information if applicable
+        if (selectedSlot.is_recurring) {
+          visitData.is_recurring = true;
+          visitData.recurring_day_of_week = selectedSlot.day_of_week;
+          visitData.recurring_window_start = selectedSlot.window_start;
+          visitData.recurring_window_end = selectedSlot.window_end;
+        }
 
         const newVisitRef = doc(visitRef);
         transaction.set(newVisitRef, visitData);
@@ -386,7 +401,15 @@ export default function Signup() {
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm text-muted-foreground">Service Date & Time</h3>
                 <p className="text-base" data-testid="text-quote-datetime">
-                  {format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')}
+                  {selectedSlot.is_recurring ? (
+                    <>
+                      Every {getDayName(selectedSlot.day_of_week || 0)}
+                      <br />
+                      Next service: {format(calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start), 'EEEE, MMMM d, yyyy')}
+                    </>
+                  ) : (
+                    format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')
+                  )}
                   <br />
                   {selectedSlot.window_start} - {selectedSlot.window_end}
                 </p>
@@ -813,7 +836,16 @@ export default function Signup() {
                           data-testid={`slot-option-${slot.id}`}
                         >
                           <div className="font-semibold">
-                            {format(new Date(slot.date), 'EEEE, MMMM d, yyyy')}
+                            {slot.is_recurring ? (
+                              <div>
+                                <div>Every {getDayName(slot.day_of_week || 0)}</div>
+                                <div className="text-sm font-normal text-muted-foreground">
+                                  Next: {format(calculateNextServiceDate(slot.day_of_week || 0, slot.window_start), 'MMM d, yyyy')}
+                                </div>
+                              </div>
+                            ) : (
+                              format(new Date(slot.date), 'EEEE, MMMM d, yyyy')
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground">
                             {slot.window_start} - {slot.window_end}
@@ -867,7 +899,11 @@ export default function Signup() {
                 {selectedSlot && (
                   <>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')} • {selectedSlot.window_start} - {selectedSlot.window_end}
+                      {selectedSlot.is_recurring ? (
+                        <>Every {getDayName(selectedSlot.day_of_week || 0)} • Next: {format(calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start), 'MMM d, yyyy')}</>
+                      ) : (
+                        format(new Date(selectedSlot.date), 'EEEE, MMMM d, yyyy')
+                      )} • {selectedSlot.window_start} - {selectedSlot.window_end}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''} • ${calculateQuote(formData.dog_count)} per service

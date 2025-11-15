@@ -25,11 +25,20 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MapPin, Calendar, Plus, Trash2, LogOut, Users } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ServiceZip, Slot, Visit, Customer } from '@shared/types';
+import { getDayName } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
 
@@ -50,8 +59,10 @@ export default function AdminDashboard() {
   
   // Slots
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [slotType, setSlotType] = useState<'one-time' | 'recurring'>('recurring');
   const [slotForm, setSlotForm] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
+    day_of_week: 6, // Saturday by default
     window_start: '09:00',
     window_end: '11:00',
     capacity: 4,
@@ -177,12 +188,29 @@ export default function AdminDashboard() {
       snapshot.forEach((doc) => {
         data.push({ ...doc.data(), id: doc.id } as Slot);
       });
-      // Sort by date and time
+      
+      // Sort: recurring first (by day_of_week), then one-time (by date, then time)
       data.sort((a, b) => {
-        const dateCompare = a.date.localeCompare(b.date);
-        if (dateCompare !== 0) return dateCompare;
-        return a.window_start.localeCompare(b.window_start);
+        // Separate recurring and one-time slots
+        const aRecurring = a.is_recurring || false;
+        const bRecurring = b.is_recurring || false;
+        
+        if (aRecurring && !bRecurring) return -1;
+        if (!aRecurring && bRecurring) return 1;
+        
+        if (aRecurring && bRecurring) {
+          // Both recurring - sort by day_of_week, then time
+          const dayCompare = (a.day_of_week || 0) - (b.day_of_week || 0);
+          if (dayCompare !== 0) return dayCompare;
+          return a.window_start.localeCompare(b.window_start);
+        } else {
+          // Both one-time - sort by date, then time
+          const dateCompare = a.date.localeCompare(b.date);
+          if (dateCompare !== 0) return dateCompare;
+          return a.window_start.localeCompare(b.window_start);
+        }
       });
+      
       setSlots(data);
     } catch (error: any) {
       toast({
@@ -198,9 +226,18 @@ export default function AdminDashboard() {
   const handleCreateSlot = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate time window
+    if (slotForm.window_start >= slotForm.window_end) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Time Window',
+        description: 'Start time must be before end time',
+      });
+      return;
+    }
+
     try {
-      await addDoc(collection(db, 'slots'), {
-        date: slotForm.date,
+      const slotData: any = {
         window_start: slotForm.window_start,
         window_end: slotForm.window_end,
         capacity: slotForm.capacity,
@@ -208,11 +245,24 @@ export default function AdminDashboard() {
         status: 'open',
         created_at: Timestamp.now(),
         updated_at: Timestamp.now(),
-      });
+      };
+
+      if (slotType === 'recurring') {
+        // Recurring slot - use day_of_week, no specific date
+        slotData.is_recurring = true;
+        slotData.day_of_week = slotForm.day_of_week;
+        slotData.date = ''; // Empty for recurring slots
+      } else {
+        // One-time slot - use specific date
+        slotData.is_recurring = false;
+        slotData.date = slotForm.date;
+      }
+
+      await addDoc(collection(db, 'slots'), slotData);
 
       toast({
         title: 'Success',
-        description: 'Slot created',
+        description: `${slotType === 'recurring' ? 'Recurring' : 'One-time'} slot created`,
       });
 
       loadSlots();
@@ -457,18 +507,65 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateSlot} className="space-y-4">
+                  {/* Slot Type Selection */}
+                  <div className="space-y-3">
+                    <Label>Slot Type</Label>
+                    <RadioGroup 
+                      value={slotType} 
+                      onValueChange={(value) => setSlotType(value as 'one-time' | 'recurring')}
+                      className="flex gap-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="recurring" id="recurring" data-testid="radio-recurring" />
+                        <Label htmlFor="recurring" className="font-normal cursor-pointer">
+                          Recurring (Monthly Plan)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="one-time" id="one-time" data-testid="radio-one-time" />
+                        <Label htmlFor="one-time" className="font-normal cursor-pointer">
+                          One-Time Service
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="slot-date">Date</Label>
-                      <Input
-                        id="slot-date"
-                        type="date"
-                        value={slotForm.date}
-                        onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
-                        required
-                        data-testid="input-slot-date"
-                      />
-                    </div>
+                    {/* Date or Day of Week */}
+                    {slotType === 'one-time' ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="slot-date">Date</Label>
+                        <Input
+                          id="slot-date"
+                          type="date"
+                          value={slotForm.date}
+                          onChange={(e) => setSlotForm({ ...slotForm, date: e.target.value })}
+                          required
+                          data-testid="input-slot-date"
+                        />
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label htmlFor="slot-day">Day of Week</Label>
+                        <Select
+                          value={slotForm.day_of_week.toString()}
+                          onValueChange={(value) => setSlotForm({ ...slotForm, day_of_week: parseInt(value) })}
+                        >
+                          <SelectTrigger id="slot-day" data-testid="select-day-of-week">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0">Sunday</SelectItem>
+                            <SelectItem value="1">Monday</SelectItem>
+                            <SelectItem value="2">Tuesday</SelectItem>
+                            <SelectItem value="3">Wednesday</SelectItem>
+                            <SelectItem value="4">Thursday</SelectItem>
+                            <SelectItem value="5">Friday</SelectItem>
+                            <SelectItem value="6">Saturday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="slot-capacity">Capacity</Label>
@@ -510,7 +607,7 @@ export default function AdminDashboard() {
 
                   <Button type="submit" data-testid="button-create-slot">
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Slot
+                    Create {slotType === 'recurring' ? 'Recurring' : 'One-Time'} Slot
                   </Button>
                 </form>
               </CardContent>
@@ -524,7 +621,7 @@ export default function AdminDashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Date/Schedule</TableHead>
                       <TableHead>Time Window</TableHead>
                       <TableHead>Booked / Capacity</TableHead>
                       <TableHead>Status</TableHead>
@@ -534,7 +631,19 @@ export default function AdminDashboard() {
                   <TableBody>
                     {slots.map((slot) => (
                       <TableRow key={slot.id} data-testid={`row-slot-${slot.id}`}>
-                        <TableCell>{format(new Date(slot.date), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          {slot.is_recurring ? (
+                            <div>
+                              <div className="font-medium">Every {getDayName(slot.day_of_week || 0)}</div>
+                              <Badge variant="secondary" className="mt-1">Recurring</Badge>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="font-medium">{format(new Date(slot.date), 'MMM d, yyyy')}</div>
+                              <Badge variant="outline" className="mt-1">One-Time</Badge>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {slot.window_start} - {slot.window_end}
                         </TableCell>
