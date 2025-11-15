@@ -11,12 +11,12 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div 
-                className="h-12 w-48 border-2 border-dashed border-border rounded flex items-center justify-center"
-                data-testid="logo-placeholder"
-              >
-                <span className="text-sm font-semibold text-primary">USA Scoops Logo</span>
-              </div>
+              <img 
+                src="/logo.png" 
+                alt="USA Scoops Logo" 
+                className="h-12 w-auto"
+                data-testid="logo-image"
+              />
             </div>
             <nav className="flex items-center gap-4">
               <Link href="/login">
