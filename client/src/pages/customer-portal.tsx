@@ -351,7 +351,7 @@ export default function CustomerPortal() {
         });
 
         // If this was a recurring visit, create a REPLACEMENT visit for the original slot
-        // to maintain the 8-week buffer for the customer's recurring subscription
+        // to maintain the 24-week buffer for the customer's recurring subscription
         if (currentVisit.is_recurring && currentVisit.recurring_group_id && replacementDate) {
           const newVisitRef = doc(collection(db, 'visits'));
           transaction.set(newVisitRef, {
