@@ -345,49 +345,59 @@ export default function Signup() {
           throw new Error('Slot is full');
         }
 
-        // Create visit - calculate scheduled date based on slot type
-        let scheduledDate: Date;
-        if (selectedSlot.is_recurring) {
-          // For recurring slots, calculate next service date
-          scheduledDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
-        } else {
-          // For one-time slots, parse date and time using date-fns
-          const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
-          scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+        // For recurring slots, create 8 weeks of visits
+        // For one-time slots, create 1 visit
+        const visitsToCreate = selectedSlot.is_recurring ? 8 : 1;
+        const recurringGroupId = selectedSlot.is_recurring ? crypto.randomUUID() : undefined;
+
+        for (let i = 0; i < visitsToCreate; i++) {
+          let scheduledDate: Date;
           
-          // Validate the date is valid
-          if (isNaN(scheduledDate.getTime())) {
-            console.error('Invalid date:', {
-              date: selectedSlot.date,
-              time: selectedSlot.window_start,
-              combined: dateTimeString,
-            });
-            throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+          if (selectedSlot.is_recurring) {
+            // Calculate the next occurrence for each week
+            const firstDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
+            scheduledDate = new Date(firstDate);
+            scheduledDate.setDate(firstDate.getDate() + (i * 7)); // Add weeks
+          } else {
+            // For one-time slots, parse date and time using date-fns
+            const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
+            scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+            
+            // Validate the date is valid
+            if (isNaN(scheduledDate.getTime())) {
+              console.error('Invalid date:', {
+                date: selectedSlot.date,
+                time: selectedSlot.window_start,
+                combined: dateTimeString,
+              });
+              throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+            }
           }
-        }
-        
-        const visitData: any = {
-          customer_uid: currentUser.uid,
-          slot_id: selectedSlot.id,
-          scheduled_for: Timestamp.fromDate(scheduledDate),
-          status: 'scheduled',
-          notes: '',
-          created_at: Timestamp.now(),
-          updated_at: Timestamp.now(),
-        };
-        
-        // Add recurring information if applicable
-        if (selectedSlot.is_recurring) {
-          visitData.is_recurring = true;
-          visitData.recurring_day_of_week = selectedSlot.day_of_week;
-          visitData.recurring_window_start = selectedSlot.window_start;
-          visitData.recurring_window_end = selectedSlot.window_end;
+          
+          const visitData: any = {
+            customer_uid: currentUser.uid,
+            slot_id: selectedSlot.id,
+            scheduled_for: Timestamp.fromDate(scheduledDate),
+            status: 'scheduled',
+            notes: '',
+            created_at: Timestamp.now(),
+            updated_at: Timestamp.now(),
+          };
+          
+          // Add recurring information if applicable
+          if (selectedSlot.is_recurring) {
+            visitData.is_recurring = true;
+            visitData.recurring_group_id = recurringGroupId;
+            visitData.recurring_day_of_week = selectedSlot.day_of_week;
+            visitData.recurring_window_start = selectedSlot.window_start;
+            visitData.recurring_window_end = selectedSlot.window_end;
+          }
+
+          const newVisitRef = doc(visitRef);
+          transaction.set(newVisitRef, visitData);
         }
 
-        const newVisitRef = doc(visitRef);
-        transaction.set(newVisitRef, visitData);
-
-        // Increment booked_count
+        // Increment booked_count (only once, not per visit)
         transaction.update(slotRef, {
           booked_count: slotData.booked_count + 1,
           updated_at: serverTimestamp(),
