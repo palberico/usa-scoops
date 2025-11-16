@@ -707,7 +707,7 @@ export default function Signup() {
             {step === 1 && 'Check Service Area'}
             {step === 2 && 'Create Your Account'}
             {step === 3 && `Welcome ${formData.name}!`}
-            {step === 4 && `Welcome ${formData.name}!`}
+            {step === 4 && 'Tell Us About Your Property'}
             {step === 5 && 'Choose Your Time'}
             {step === 6 && 'Payment Details'}
           </CardTitle>
