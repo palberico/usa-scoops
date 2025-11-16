@@ -66,6 +66,7 @@ export interface Visit {
   notes?: string;
   // Recurring schedule tracking
   is_recurring?: boolean; // true if this is a recurring monthly plan
+  recurring_group_id?: string; // UUID linking all visits from same recurring subscription
   recurring_day_of_week?: number; // 0-6 for recurring visits
   recurring_window_start?: string; // HH:mm for recurring visits
   recurring_window_end?: string; // HH:mm for recurring visits
