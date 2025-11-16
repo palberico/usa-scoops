@@ -485,8 +485,8 @@ export default function CustomerPortal() {
                     </span>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-2">
+                  {/* Action Buttons - Temporarily hidden, keeping logic for potential future use */}
+                  {/* <div className="flex gap-3 pt-2">
                     <Button
                       variant="outline"
                       onClick={openRescheduleDialog}
@@ -505,7 +505,7 @@ export default function CustomerPortal() {
                       <XCircle className="h-4 w-4 mr-2" />
                       Cancel
                     </Button>
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="space-y-4">
