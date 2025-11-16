@@ -17,7 +17,18 @@ The application employs a client-side Firebase architecture, with all database o
 ### Feature Specifications
 
 *   **Landing Page**: Hero section, "How It Works" guide, and calls to action.
-*   **Multi-Step Signup Flow**: Guides users through zip code validation, account creation, address and dog count input, and time slot selection (both recurring and one-time). Includes a waitlist for non-serviced areas and automated quote calculation.
+*   **6-Step Signup Flow**: Guides users through a comprehensive booking process:
+    1. **Zip Code Validation**: Check if service area is available
+    2. **Account Creation**: Email/password registration via Firebase Auth
+    3. **Dog Information**: Select number of dogs (1-10) and optionally enter names for each dog
+       - **Price Quote Modal** displays after submission showing calculated price based on dog count
+    4. **Property Information**: Phone number, street address, city, state (defaults to UT), zip code, optional gate code and yard notes
+    5. **Time Selection**: Choose from available recurring or one-time slots filtered by customer's zip code
+       - **Booking Review Modal** displays after selection showing complete booking details
+    6. **Payment**: Placeholder payment form with booking summary
+    - Includes waitlist functionality for non-serviced areas
+    - Automated quote calculation: $15 base + $5 per additional dog
+    - Dog names are optional but stored in customer profile for personalization
 *   **Customer Portal**: Allows customers to view upcoming/past visits (displays recurring schedule with next service date), cancel/reschedule services to any available slot, and send support messages.
 *   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete.
 *   **Admin Dashboard**: Provides administrators with tools to manage service zip codes, create time slots (recurring and one-time), and oversee all visits and bookings.
@@ -60,3 +71,21 @@ The application employs a client-side Firebase architecture, with all database o
 *   **TanStack Query**: Data fetching and caching library
 *   **date-fns**: Date utility library
 *   **Netlify**: Deployment target for static hosting
+
+## Development & Testing
+
+### Initial Setup Requirements
+
+Before customers can sign up, an administrator must configure service areas and time slots:
+
+1. **Create Admin User**: Use Firebase Console to create the first admin user account
+2. **Set Admin Role**: Update the user's document in either `customers` or `technicians` collection with `role: 'admin'`
+3. **Add Service Zips**: Navigate to Admin Dashboard → Zip Codes tab to add serviced zip codes (e.g., 84604, 84601)
+4. **Create Time Slots**: Navigate to Admin Dashboard → Slots tab to create recurring or one-time service slots for each zip code
+
+### Test Data Script
+
+The `setup-test-data.js` script provides a template for adding test data, but requires Firebase Admin SDK authentication to bypass security rules. For development testing:
+- Manually add service zips and slots through the Admin Dashboard UI
+- Or use Firebase Console to directly add documents to `service_zips` and `slots` collections
+- Field names: `zip` (not `zip_code`), `booked_count` (not `booked`)
