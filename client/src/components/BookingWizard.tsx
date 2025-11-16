@@ -153,40 +153,51 @@ export default function BookingWizard({
           throw new Error('Slot is full');
         }
 
-        // Create visit - calculate scheduled date based on slot type
-        let scheduledDate: Date;
-        if (selectedSlot.is_recurring) {
-          scheduledDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
-        } else {
-          const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
-          scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-          
-          if (isNaN(scheduledDate.getTime())) {
-            throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
-          }
-        }
-        
-        const visitData: any = {
-          customer_uid: customerId,
-          slot_id: selectedSlot.id,
-          scheduled_for: Timestamp.fromDate(scheduledDate),
-          status: 'scheduled' as const,
-          notes: '',
-          created_at: Timestamp.now(),
-          updated_at: Timestamp.now(),
-        };
-        
-        if (selectedSlot.is_recurring) {
-          visitData.is_recurring = true;
-          visitData.recurring_day_of_week = selectedSlot.day_of_week;
-          visitData.recurring_window_start = selectedSlot.window_start;
-          visitData.recurring_window_end = selectedSlot.window_end;
-        } else {
-          visitData.is_recurring = false;
-        }
+        // For recurring slots, create 8 weeks of visits
+        // For one-time slots, create 1 visit
+        const visitsToCreate = selectedSlot.is_recurring ? 8 : 1;
+        const recurringGroupId = selectedSlot.is_recurring ? crypto.randomUUID() : undefined;
 
-        const newVisitRef = doc(visitRef);
-        transaction.set(newVisitRef, visitData);
+        for (let i = 0; i < visitsToCreate; i++) {
+          let scheduledDate: Date;
+          
+          if (selectedSlot.is_recurring) {
+            // Calculate the next occurrence for each week
+            const firstDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
+            scheduledDate = new Date(firstDate);
+            scheduledDate.setDate(firstDate.getDate() + (i * 7)); // Add weeks
+          } else {
+            const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
+            scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
+            
+            if (isNaN(scheduledDate.getTime())) {
+              throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
+            }
+          }
+          
+          const visitData: any = {
+            customer_uid: customerId,
+            slot_id: selectedSlot.id,
+            scheduled_for: Timestamp.fromDate(scheduledDate),
+            status: 'scheduled' as const,
+            notes: '',
+            created_at: Timestamp.now(),
+            updated_at: Timestamp.now(),
+          };
+          
+          if (selectedSlot.is_recurring) {
+            visitData.is_recurring = true;
+            visitData.recurring_group_id = recurringGroupId;
+            visitData.recurring_day_of_week = selectedSlot.day_of_week;
+            visitData.recurring_window_start = selectedSlot.window_start;
+            visitData.recurring_window_end = selectedSlot.window_end;
+          } else {
+            visitData.is_recurring = false;
+          }
+
+          const newVisitRef = doc(visitRef);
+          transaction.set(newVisitRef, visitData);
+        }
 
         transaction.update(slotRef, {
           booked_count: slotData.booked_count + 1,
