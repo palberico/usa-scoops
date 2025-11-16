@@ -519,7 +519,7 @@ export default function Signup() {
       <Dialog open={showWaitlistModal} onOpenChange={setShowWaitlistModal}>
         <DialogContent className="sm:max-w-md" data-testid="modal-waitlist">
           <DialogHeader>
-            <DialogTitle className="text-center text-2xl">Service area is not yet available</DialogTitle>
+            <DialogTitle className="text-center text-2xl">That's ruff! Service area is not yet available</DialogTitle>
             <DialogDescription className="text-center text-base">
               We're not in your area yet, but we're expanding! Join our waitlist to be notified when we arrive.
             </DialogDescription>
