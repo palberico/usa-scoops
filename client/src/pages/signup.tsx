@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -217,6 +218,17 @@ export default function Signup() {
   // Step 3: Your Information (address, phone, dog count)
   const handleInformationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate state is selected
+    if (!formData.state) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select a state.',
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -519,7 +531,10 @@ export default function Signup() {
       <Dialog open={showWaitlistModal} onOpenChange={setShowWaitlistModal}>
         <DialogContent className="sm:max-w-md" data-testid="modal-waitlist">
           <DialogHeader>
-            <DialogTitle className="text-center text-2xl">That's ruff! Service area is not yet available</DialogTitle>
+            <DialogTitle className="text-center text-2xl">That's ruff!</DialogTitle>
+            <DialogDescription className="text-center text-base font-semibold text-foreground mb-2">
+              Service area is not yet available
+            </DialogDescription>
             <DialogDescription className="text-center text-base">
               We're not in your area yet, but we're expanding! Join our waitlist to be notified when we arrive.
             </DialogDescription>
@@ -606,7 +621,7 @@ export default function Signup() {
           <CardTitle className="text-3xl font-bold" data-testid="heading-signup">
             {step === 1 && 'Check Service Area'}
             {step === 2 && 'Create Your Account'}
-            {step === 3 && 'Your Information'}
+            {step === 3 && `Welcome ${formData.name}! Tell us about your property`}
             {step === 4 && 'Choose Your Time'}
             {step === 5 && 'Payment Details'}
           </CardTitle>
@@ -800,14 +815,67 @@ export default function Signup() {
 
                 <div className="space-y-2">
                   <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
+                  <Select
                     value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    maxLength={2}
+                    onValueChange={(value) => setFormData({ ...formData, state: value })}
                     required
-                    data-testid="input-state"
-                  />
+                  >
+                    <SelectTrigger id="state" data-testid="select-state">
+                      <SelectValue placeholder="Select state" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AL">Alabama</SelectItem>
+                      <SelectItem value="AK">Alaska</SelectItem>
+                      <SelectItem value="AZ">Arizona</SelectItem>
+                      <SelectItem value="AR">Arkansas</SelectItem>
+                      <SelectItem value="CA">California</SelectItem>
+                      <SelectItem value="CO">Colorado</SelectItem>
+                      <SelectItem value="CT">Connecticut</SelectItem>
+                      <SelectItem value="DE">Delaware</SelectItem>
+                      <SelectItem value="FL">Florida</SelectItem>
+                      <SelectItem value="GA">Georgia</SelectItem>
+                      <SelectItem value="HI">Hawaii</SelectItem>
+                      <SelectItem value="ID">Idaho</SelectItem>
+                      <SelectItem value="IL">Illinois</SelectItem>
+                      <SelectItem value="IN">Indiana</SelectItem>
+                      <SelectItem value="IA">Iowa</SelectItem>
+                      <SelectItem value="KS">Kansas</SelectItem>
+                      <SelectItem value="KY">Kentucky</SelectItem>
+                      <SelectItem value="LA">Louisiana</SelectItem>
+                      <SelectItem value="ME">Maine</SelectItem>
+                      <SelectItem value="MD">Maryland</SelectItem>
+                      <SelectItem value="MA">Massachusetts</SelectItem>
+                      <SelectItem value="MI">Michigan</SelectItem>
+                      <SelectItem value="MN">Minnesota</SelectItem>
+                      <SelectItem value="MS">Mississippi</SelectItem>
+                      <SelectItem value="MO">Missouri</SelectItem>
+                      <SelectItem value="MT">Montana</SelectItem>
+                      <SelectItem value="NE">Nebraska</SelectItem>
+                      <SelectItem value="NV">Nevada</SelectItem>
+                      <SelectItem value="NH">New Hampshire</SelectItem>
+                      <SelectItem value="NJ">New Jersey</SelectItem>
+                      <SelectItem value="NM">New Mexico</SelectItem>
+                      <SelectItem value="NY">New York</SelectItem>
+                      <SelectItem value="NC">North Carolina</SelectItem>
+                      <SelectItem value="ND">North Dakota</SelectItem>
+                      <SelectItem value="OH">Ohio</SelectItem>
+                      <SelectItem value="OK">Oklahoma</SelectItem>
+                      <SelectItem value="OR">Oregon</SelectItem>
+                      <SelectItem value="PA">Pennsylvania</SelectItem>
+                      <SelectItem value="RI">Rhode Island</SelectItem>
+                      <SelectItem value="SC">South Carolina</SelectItem>
+                      <SelectItem value="SD">South Dakota</SelectItem>
+                      <SelectItem value="TN">Tennessee</SelectItem>
+                      <SelectItem value="TX">Texas</SelectItem>
+                      <SelectItem value="UT">Utah</SelectItem>
+                      <SelectItem value="VT">Vermont</SelectItem>
+                      <SelectItem value="VA">Virginia</SelectItem>
+                      <SelectItem value="WA">Washington</SelectItem>
+                      <SelectItem value="WV">West Virginia</SelectItem>
+                      <SelectItem value="WI">Wisconsin</SelectItem>
+                      <SelectItem value="WY">Wyoming</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
