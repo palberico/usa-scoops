@@ -211,16 +211,16 @@ export default function TechnicianPortal() {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold" data-testid="heading-tech-portal">Technician Portal</h1>
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 sm:h-16">
+            <h1 className="text-xl sm:text-2xl font-bold" data-testid="heading-tech-portal">Technician Portal</h1>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
               {role === 'admin' && (
-                <Button variant="outline" onClick={() => setLocation('/admin')} data-testid="button-admin-portal">
+                <Button variant="outline" onClick={() => setLocation('/admin')} data-testid="button-admin-portal" className="w-full sm:w-auto">
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Admin Portal
                 </Button>
               )}
-              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
+              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout" className="w-full sm:w-auto">
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -240,17 +240,17 @@ export default function TechnicianPortal() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <Label htmlFor="date">Date</Label>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+                <Label htmlFor="date" className="sm:min-w-fit">Date</Label>
                 <Input
                   id="date"
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="max-w-xs"
+                  className="flex-1 sm:max-w-xs"
                   data-testid="input-date-filter"
                 />
-                <Button onClick={loadVisits} data-testid="button-refresh-visits">
+                <Button onClick={loadVisits} data-testid="button-refresh-visits" className="w-full sm:w-auto">
                   Refresh
                 </Button>
               </div>
@@ -275,16 +275,17 @@ export default function TechnicianPortal() {
                   No scheduled visits for this date
                 </p>
               ) : (
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Time Window</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Dogs</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Action</TableHead>
+                      <TableHead className="min-w-[120px]">Time Window</TableHead>
+                      <TableHead className="min-w-[120px]">Customer</TableHead>
+                      <TableHead className="min-w-[120px]">Phone</TableHead>
+                      <TableHead className="min-w-[200px]">Address</TableHead>
+                      <TableHead className="min-w-[60px]">Dogs</TableHead>
+                      <TableHead className="min-w-[150px]">Notes</TableHead>
+                      <TableHead className="min-w-[120px]">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -345,6 +346,7 @@ export default function TechnicianPortal() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -391,14 +393,15 @@ export default function TechnicianPortal() {
                       </div>
                     </div>
                   </div>
+                  <div className="overflow-x-auto -mx-6 px-6">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Time Window</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Address</TableHead>
-                        <TableHead>Dogs</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead className="min-w-[120px]">Time Window</TableHead>
+                        <TableHead className="min-w-[120px]">Customer</TableHead>
+                        <TableHead className="min-w-[180px]">Address</TableHead>
+                        <TableHead className="min-w-[60px]">Dogs</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -434,6 +437,7 @@ export default function TechnicianPortal() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </>
               )}
             </CardContent>

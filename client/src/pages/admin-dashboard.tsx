@@ -475,12 +475,13 @@ export default function AdminDashboard() {
                   </Button>
                 </form>
 
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Zip Code</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="min-w-[100px]">Zip Code</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[140px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -513,6 +514,7 @@ export default function AdminDashboard() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -660,14 +662,15 @@ export default function AdminDashboard() {
                 <CardTitle>Existing Slots</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date/Schedule</TableHead>
-                      <TableHead>Time Window</TableHead>
-                      <TableHead>Booked / Capacity</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="min-w-[150px]">Date/Schedule</TableHead>
+                      <TableHead className="min-w-[120px]">Time Window</TableHead>
+                      <TableHead className="min-w-[140px]">Booked / Capacity</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -738,6 +741,7 @@ export default function AdminDashboard() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -768,14 +772,15 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Address</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="min-w-[120px]">Date</TableHead>
+                      <TableHead className="min-w-[120px]">Time</TableHead>
+                      <TableHead className="min-w-[120px]">Customer</TableHead>
+                      <TableHead className="min-w-[180px]">Address</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -798,6 +803,7 @@ export default function AdminDashboard() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
