@@ -51,4 +51,4 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev -- --host 0.0.0.0 --port 5000"
+args = "__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=.riker.replit.dev npm run dev -- --host 0.0.0.0 --port 5000"
