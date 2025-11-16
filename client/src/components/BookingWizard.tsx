@@ -153,9 +153,9 @@ export default function BookingWizard({
           throw new Error('Slot is full');
         }
 
-        // For recurring slots, create 8 weeks of visits
+        // For recurring slots, create 24 weeks of visits (6 months)
         // For one-time slots, create 1 visit
-        const visitsToCreate = selectedSlot.is_recurring ? 8 : 1;
+        const visitsToCreate = selectedSlot.is_recurring ? 24 : 1;
         const recurringGroupId = selectedSlot.is_recurring ? crypto.randomUUID() : undefined;
 
         for (let i = 0; i < visitsToCreate; i++) {

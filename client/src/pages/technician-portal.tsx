@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Calendar, CheckCircle2, LogOut, LayoutDashboard } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot } from '@shared/types';
 import { format } from 'date-fns';
@@ -45,29 +45,43 @@ export default function TechnicianPortal() {
     setLoading(true);
     try {
       const visitsRef = collection(db, 'visits');
-      // Load both scheduled and completed visits (optimized query)
-      const q = query(
-        visitsRef,
-        where('status', 'in', ['scheduled', 'completed'])
-      );
-      const visitsSnapshot = await getDocs(q);
-
-      const visitsWithDetails: VisitWithDetails[] = [];
+      
       // Parse date string as local date (not UTC)
-      // HTML date input gives "YYYY-MM-DD" which new Date() interprets as UTC midnight
-      // We need to create a local date at midnight instead
       const [year, month, day] = selectedDate.split('-').map(Number);
       const selectedDateObj = new Date(year, month - 1, day, 0, 0, 0, 0);
       const nextDay = new Date(year, month - 1, day + 1, 0, 0, 0, 0);
+      
+      const startTimestamp = Timestamp.fromDate(selectedDateObj);
+      const endTimestamp = Timestamp.fromDate(nextDay);
 
-      for (const visitDoc of visitsSnapshot.docs) {
+      // Query scheduled visits for the selected date with date range
+      // Note: Requires composite index on (status, scheduled_for)
+      const scheduledQuery = query(
+        visitsRef,
+        where('status', '==', 'scheduled'),
+        where('scheduled_for', '>=', startTimestamp),
+        where('scheduled_for', '<', endTimestamp),
+        orderBy('scheduled_for', 'asc')
+      );
+      const scheduledSnapshot = await getDocs(scheduledQuery);
+
+      // Query completed visits for the selected date with date range
+      const completedQuery = query(
+        visitsRef,
+        where('status', '==', 'completed'),
+        where('scheduled_for', '>=', startTimestamp),
+        where('scheduled_for', '<', endTimestamp),
+        orderBy('scheduled_for', 'asc')
+      );
+      const completedSnapshot = await getDocs(completedQuery);
+
+      const visitsWithDetails: VisitWithDetails[] = [];
+      
+      // Process both scheduled and completed visits
+      const allVisitDocs = [...scheduledSnapshot.docs, ...completedSnapshot.docs];
+      
+      for (const visitDoc of allVisitDocs) {
         const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
-        
-        // Filter by selected date using range check (handles UTC/timezone issues)
-        const visitTimestamp = visit.scheduled_for.toDate().getTime();
-        if (visitTimestamp < selectedDateObj.getTime() || visitTimestamp >= nextDay.getTime()) {
-          continue;
-        }
 
         // Get slot
         const slotDoc = await getDoc(doc(db, 'slots', visit.slot_id));
@@ -118,7 +132,7 @@ export default function TechnicianPortal() {
         updated_at: Timestamp.now(),
       });
 
-      // If this is a recurring visit, maintain the 8-week buffer
+      // If this is a recurring visit, maintain the 24-week buffer
       if (visit.is_recurring && visit.recurring_group_id) {
         // Count future scheduled visits in this recurring group
         const futureVisitsQuery = query(
@@ -132,7 +146,7 @@ export default function TechnicianPortal() {
         // Sort by scheduled_for to find the latest
         futureVisits.sort((a, b) => b.scheduled_for.toDate().getTime() - a.scheduled_for.toDate().getTime());
         
-        const bufferSize = 8;
+        const bufferSize = 24;
         const visitsToCreate = bufferSize - futureVisits.length;
         
         if (visitsToCreate > 0 && visit.recurring_day_of_week !== undefined) {
@@ -243,7 +257,7 @@ export default function TechnicianPortal() {
             </CardContent>
           </Card>
 
-          {/* Visits Table */}
+          {/* Scheduled Visits Table */}
           <Card>
             <CardHeader>
               <CardTitle>Scheduled Visits</CardTitle>
@@ -256,7 +270,7 @@ export default function TechnicianPortal() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : visits.length === 0 ? (
+              ) : visits.filter(v => v.status === 'scheduled').length === 0 ? (
                 <p className="text-muted-foreground text-center py-8" data-testid="text-no-visits">
                   No scheduled visits for this date
                 </p>
@@ -274,7 +288,7 @@ export default function TechnicianPortal() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visits.map((visit) => {
+                    {visits.filter(v => v.status === 'scheduled').map((visit) => {
                       // Fallback to slot window times if recurring times not set
                       const windowStart = visit.recurring_window_start || visit.slot.window_start;
                       const windowEnd = visit.recurring_window_end || visit.slot.window_end;
@@ -310,34 +324,117 @@ export default function TechnicianPortal() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {visit.status === 'completed' ? (
-                              <Badge variant="secondary" data-testid={`badge-completed-${visit.id}`}>
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Completed
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => handleMarkCompleted(visit.id)}
-                                disabled={updatingVisit === visit.id}
-                                data-testid={`button-complete-${visit.id}`}
-                              >
-                                {updatingVisit === visit.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                                    Complete
-                                  </>
-                                )}
-                              </Button>
-                            )}
+                            <Button
+                              size="sm"
+                              onClick={() => handleMarkCompleted(visit.id)}
+                              disabled={updatingVisit === visit.id}
+                              data-testid={`button-complete-${visit.id}`}
+                            >
+                              {updatingVisit === visit.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Complete
+                                </>
+                              )}
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Completed Jobs Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                Completed Jobs
+              </CardTitle>
+              <CardDescription>
+                Jobs completed on {format(new Date(selectedDate), 'MMMM d, yyyy')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : visits.filter(v => v.status === 'completed').length === 0 ? (
+                <p className="text-muted-foreground text-center py-8" data-testid="text-no-completed">
+                  No completed jobs for this date
+                </p>
+              ) : (
+                <>
+                  <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Total Completed
+                        </p>
+                        <p className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-total-completed">
+                          {visits.filter(v => v.status === 'completed').length}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                          Total Dogs Serviced
+                        </p>
+                        <p className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-total-dogs">
+                          {visits.filter(v => v.status === 'completed').reduce((sum, v) => sum + v.customer.dog_count, 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Time Window</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Address</TableHead>
+                        <TableHead>Dogs</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {visits.filter(v => v.status === 'completed').map((visit) => {
+                        const windowStart = visit.recurring_window_start || visit.slot.window_start;
+                        const windowEnd = visit.recurring_window_end || visit.slot.window_end;
+                        
+                        return (
+                          <TableRow key={visit.id} data-testid={`row-completed-${visit.id}`}>
+                            <TableCell className="font-medium">
+                              {windowStart} - {windowEnd}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {visit.customer.name}
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                <div>{visit.customer.address.street}</div>
+                                <div className="text-muted-foreground">
+                                  {visit.customer.address.city}, {visit.customer.address.state}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{visit.customer.dog_count}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Completed
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </>
               )}
             </CardContent>
           </Card>

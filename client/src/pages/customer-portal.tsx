@@ -46,10 +46,23 @@ export default function CustomerPortal() {
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedNewSlot, setSelectedNewSlot] = useState<Slot | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [schedulePage, setSchedulePage] = useState(0);
 
   useEffect(() => {
     loadData();
   }, [user]);
+
+  // Clamp pagination when upcoming visits change
+  useEffect(() => {
+    if (upcomingVisits.length > 0) {
+      const visitsPerPage = 4;
+      const totalPages = Math.ceil(upcomingVisits.length / visitsPerPage);
+      // Clamp page to valid range
+      setSchedulePage(prev => Math.min(prev, totalPages - 1));
+    } else {
+      setSchedulePage(0);
+    }
+  }, [upcomingVisits]);
 
   const loadData = async () => {
     if (!user) return;
@@ -512,22 +525,29 @@ export default function CustomerPortal() {
           )}
 
           {/* Upcoming Recurring Schedule */}
-          {nextVisit?.visit.is_recurring && upcomingVisits.length > 0 && (
-            <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarClock className="h-5 w-5 text-primary" />
-                  Your Recurring Schedule
-                </CardTitle>
-                <CardDescription>
-                  {upcomingVisits.length} visits scheduled • {getDayName(nextVisit.visit.recurring_day_of_week || 0)}s at {nextVisit.slot.window_start}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain an 8-week schedule so you're always covered!
-                  </p>
+          {nextVisit?.visit.is_recurring && upcomingVisits.length > 0 && (() => {
+            const visitsPerPage = 4;
+            const totalPages = Math.ceil(upcomingVisits.length / visitsPerPage);
+            const startIndex = schedulePage * visitsPerPage;
+            const endIndex = startIndex + visitsPerPage;
+            const paginatedVisits = upcomingVisits.slice(startIndex, endIndex);
+            
+            return (
+              <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CalendarClock className="h-5 w-5 text-primary" />
+                    Your Recurring Schedule
+                  </CardTitle>
+                  <CardDescription>
+                    {upcomingVisits.length} visits scheduled • {getDayName(nextVisit.visit.recurring_day_of_week || 0)}s at {nextVisit.slot.window_start}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain a 24-week schedule so you're always covered!
+                    </p>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -537,7 +557,8 @@ export default function CustomerPortal() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {upcomingVisits.map(({ visit, slot }, index) => {
+                      {paginatedVisits.map(({ visit, slot }, localIndex) => {
+                        const globalIndex = startIndex + localIndex;
                         const visitDate = visit.scheduled_for.toDate();
                         const now = new Date();
                         const isPast = visitDate < now;
@@ -546,11 +567,11 @@ export default function CustomerPortal() {
                           <TableRow 
                             key={visit.id} 
                             data-testid={`row-upcoming-visit-${visit.id}`}
-                            className={index === 0 ? 'bg-primary/5' : ''}
+                            className={globalIndex === 0 ? 'bg-primary/5' : ''}
                           >
                             <TableCell className="font-medium">
                               {format(visitDate, 'MMM d, yyyy')}
-                              {index === 0 && !isPast && (
+                              {globalIndex === 0 && !isPast && (
                                 <Badge variant="default" className="ml-2">Next</Badge>
                               )}
                               {isPast && (
@@ -568,10 +589,40 @@ export default function CustomerPortal() {
                       })}
                     </TableBody>
                   </Table>
+                  
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {startIndex + 1}-{Math.min(endIndex, upcomingVisits.length)} of {upcomingVisits.length} visits
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSchedulePage(p => Math.max(0, p - 1))}
+                          disabled={schedulePage === 0}
+                          data-testid="button-prev-page"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSchedulePage(p => Math.min(totalPages - 1, p + 1))}
+                          disabled={schedulePage === totalPages - 1}
+                          data-testid="button-next-page"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          )}
+          );
+          })()}
 
           {/* Visit History */}
           <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
