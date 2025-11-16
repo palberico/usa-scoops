@@ -247,65 +247,113 @@ export default function CustomerPortal() {
       const newSlotRef = doc(db, 'slots', selectedNewSlot.id);
       const visitRef = doc(db, 'visits', nextVisit.visit.id);
 
+      // Pre-fetch recurring group visits to calculate replacement date
+      // Note: This creates a potential race condition, but it's acceptable because:
+      // 1. The auto-replenishment logic will fix any gaps when visits are completed
+      // 2. Duplicate dates are prevented by the buffer size check
+      let replacementDate: Date | null = null;
+      if (nextVisit.visit.is_recurring && nextVisit.visit.recurring_group_id) {
+        const groupQuery = query(
+          collection(db, 'visits'),
+          where('recurring_group_id', '==', nextVisit.visit.recurring_group_id),
+          where('status', '==', 'scheduled')
+        );
+        const groupSnapshot = await getDocs(groupQuery);
+        const groupVisits = groupSnapshot.docs
+          .map(doc => ({ ...doc.data(), id: doc.id }) as Visit)
+          .filter(v => v.id !== nextVisit.visit.id) // Exclude the one being rescheduled
+          .sort((a, b) => b.scheduled_for.toDate().getTime() - a.scheduled_for.toDate().getTime());
+        
+        if (groupVisits.length > 0) {
+          // Latest visit + 7 days
+          const latestDate = groupVisits[0].scheduled_for.toDate();
+          replacementDate = new Date(latestDate);
+          replacementDate.setDate(latestDate.getDate() + 7);
+          
+          // Set time from recurring window
+          if (nextVisit.visit.recurring_window_start) {
+            const [hours, minutes] = nextVisit.visit.recurring_window_start.split(':').map(Number);
+            replacementDate.setHours(hours, minutes, 0, 0);
+          }
+        }
+      }
+
       await runTransaction(db, async (transaction) => {
+        // Read all documents inside transaction
         const oldSlotDoc = await transaction.get(oldSlotRef);
         const newSlotDoc = await transaction.get(newSlotRef);
+        const currentVisitDoc = await transaction.get(visitRef);
+
+        if (!currentVisitDoc.exists()) {
+          throw new Error('Visit no longer exists');
+        }
 
         if (!newSlotDoc.exists()) {
           throw new Error('Selected slot no longer exists');
         }
 
+        const currentVisit = currentVisitDoc.data();
         const newSlotData = newSlotDoc.data();
+        const oldSlotData = oldSlotDoc.data();
+        
         if (newSlotData.booked_count >= newSlotData.capacity) {
           throw new Error('Selected slot is now full');
         }
 
-        // Decrement old slot count
-        if (oldSlotDoc.exists()) {
-          const oldCount = oldSlotDoc.data().booked_count || 0;
-          transaction.update(oldSlotRef, {
-            booked_count: Math.max(0, oldCount - 1),
-          });
-        }
-
-        // Increment new slot count
-        transaction.update(newSlotRef, {
-          booked_count: newSlotData.booked_count + 1,
-        });
-
-        // Convert slot date and time to Firestore Timestamp
+        // Calculate new scheduled time
         let scheduledDate: Date;
         if (selectedNewSlot.is_recurring) {
-          // For recurring slots, calculate next service date
           scheduledDate = calculateNextServiceDate(selectedNewSlot.day_of_week || 0, selectedNewSlot.window_start);
         } else {
-          // For one-time slots, combine date (YYYY-MM-DD) with window_start time (HH:mm)
           const dateTimeString = `${selectedNewSlot.date}T${selectedNewSlot.window_start}:00`;
           scheduledDate = new Date(dateTimeString);
         }
-        
         const scheduledTimestamp = Timestamp.fromDate(scheduledDate);
 
-        // Update visit with new slot and recurring information
-        const visitUpdate: any = {
+        // Update the visit: remove from recurring group and reschedule as standalone
+        transaction.update(visitRef, {
           slot_id: selectedNewSlot.id,
           scheduled_for: scheduledTimestamp,
-        };
-        
-        // Add or remove recurring information based on new slot type
-        if (selectedNewSlot.is_recurring) {
-          visitUpdate.is_recurring = true;
-          visitUpdate.recurring_day_of_week = selectedNewSlot.day_of_week;
-          visitUpdate.recurring_window_start = selectedNewSlot.window_start;
-          visitUpdate.recurring_window_end = selectedNewSlot.window_end;
-        } else {
-          visitUpdate.is_recurring = false;
-          visitUpdate.recurring_day_of_week = null;
-          visitUpdate.recurring_window_start = null;
-          visitUpdate.recurring_window_end = null;
+          is_recurring: false,
+          recurring_group_id: null,
+          recurring_day_of_week: null,
+          recurring_window_start: null,
+          recurring_window_end: null,
+        });
+
+        // If this was a recurring visit, create a REPLACEMENT visit for the original slot
+        // to maintain the 8-week buffer for the customer's recurring subscription
+        if (currentVisit.is_recurring && currentVisit.recurring_group_id && replacementDate) {
+          const newVisitRef = doc(collection(db, 'visits'));
+          transaction.set(newVisitRef, {
+            customer_uid: currentVisit.customer_uid,
+            slot_id: currentVisit.slot_id, // Use ORIGINAL slot_id to keep recurring series anchored
+            scheduled_for: Timestamp.fromDate(replacementDate),
+            status: 'scheduled',
+            notes: '',
+            is_recurring: true,
+            recurring_group_id: currentVisit.recurring_group_id,
+            recurring_day_of_week: currentVisit.recurring_day_of_week,
+            recurring_window_start: currentVisit.recurring_window_start,
+            recurring_window_end: currentVisit.recurring_window_end,
+            created_at: Timestamp.now(),
+            updated_at: Timestamp.now(),
+          });
         }
-        
-        transaction.update(visitRef, visitUpdate);
+
+        // Slot counts: only adjust for one-time visits
+        // Recurring visits don't affect slot counts when rescheduled (customer remains subscribed)
+        if (!currentVisit.is_recurring && oldSlotDoc.exists() && oldSlotData) {
+          transaction.update(oldSlotRef, {
+            booked_count: Math.max(0, (oldSlotData.booked_count || 0) - 1),
+          });
+        }
+
+        if (!selectedNewSlot.is_recurring) {
+          transaction.update(newSlotRef, {
+            booked_count: newSlotData.booked_count + 1,
+          });
+        }
       });
 
       toast({
