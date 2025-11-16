@@ -16,38 +16,43 @@ const db = getFirestore(app);
 async function setupTestData() {
   console.log('Setting up test data...');
   
-  // Add service zip
-  const serviceZipRef = await addDoc(collection(db, 'service_zips'), {
-    zip_code: '90210',
-    active: true
-  });
-  console.log('Created service zip:', serviceZipRef.id);
+  // Add service zips for Utah
+  const utahZips = ['84604', '84601', '84602', '84603'];
+  for (const zip of utahZips) {
+    const serviceZipRef = await addDoc(collection(db, 'service_zips'), {
+      zip: zip,
+      active: true
+    });
+    console.log('Created service zip:', zip, serviceZipRef.id);
+  }
   
-  // Add recurring slot
-  const recurringSlotRef = await addDoc(collection(db, 'slots'), {
-    zip_code: '90210',
-    is_recurring: true,
-    day_of_week: 2, // Tuesday
-    window_start: '09:00',
-    window_end: '11:00',
-    capacity: 10,
-    booked: 0
-  });
-  console.log('Created recurring slot:', recurringSlotRef.id);
+  // Add recurring slot for each zip
+  for (const zip of utahZips) {
+    const recurringSlotRef = await addDoc(collection(db, 'slots'), {
+      zip: zip,
+      is_recurring: true,
+      day_of_week: 2, // Tuesday
+      window_start: '09:00',
+      window_end: '11:00',
+      capacity: 10,
+      booked_count: 0
+    });
+    console.log('Created recurring slot for', zip, recurringSlotRef.id);
+  }
   
-  // Add one-time slot
+  // Add one-time slot for 84604
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const dateStr = tomorrow.toISOString().split('T')[0];
   
   const oneTimeSlotRef = await addDoc(collection(db, 'slots'), {
-    zip_code: '90210',
+    zip: '84604',
     is_recurring: false,
     date: dateStr,
     window_start: '14:00',
     window_end: '16:00',
     capacity: 10,
-    booked: 0
+    booked_count: 0
   });
   console.log('Created one-time slot:', oneTimeSlotRef.id);
   
