@@ -43,6 +43,7 @@ export default function Signup() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
+  const [showPriceQuoteModal, setShowPriceQuoteModal] = useState(false);
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -67,14 +68,16 @@ export default function Signup() {
     name: '',
     email: '',
     password: '',
-    // Step 3: Your Information
+    // Step 3: Dog information
+    dog_count: 1,
+    dog_names: [''] as string[],
+    // Step 4: Property Information
     phone: '',
     street: '',
     city: '',
     state: 'UT',
     gate_code: '',
     notes: '',
-    dog_count: 1,
   });
 
   // Step 1: Validate Zip Code (no account creation yet)
@@ -215,7 +218,48 @@ export default function Signup() {
     }
   };
 
-  // Step 3: Your Information (address, phone, dog count)
+  // Step 3: Dog Information
+  const handleDogInfoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Get current user
+      const { auth } = await import('@/lib/firebase');
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser) {
+        throw new Error('User not authenticated. Please refresh and try again.');
+      }
+
+      // Update customer document with dog information
+      const { updateDoc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'customers', currentUser.uid), {
+        dog_count: formData.dog_count,
+        dog_names: formData.dog_names.filter(name => name.trim() !== ''),
+        updated_at: serverTimestamp(),
+      });
+
+      // Show price quote modal after saving dog info
+      setShowPriceQuoteModal(true);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to save dog information',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler to continue from price quote modal to property information
+  const handlePriceQuoteConfirm = () => {
+    setShowPriceQuoteModal(false);
+    setStep(4); // Move to property information step
+  };
+
+  // Step 4: Property Information (address, phone)
   const handleInformationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -240,7 +284,7 @@ export default function Signup() {
         throw new Error('User not authenticated. Please refresh and try again.');
       }
 
-      // Update customer document with additional information
+      // Update customer document with property information
       const { updateDoc } = await import('firebase/firestore');
       await updateDoc(doc(db, 'customers', currentUser.uid), {
         phone: formData.phone,
@@ -252,11 +296,10 @@ export default function Signup() {
           gate_code: formData.gate_code || '',
           notes: formData.notes || ''
         },
-        dog_count: formData.dog_count,
         updated_at: serverTimestamp(),
       });
 
-      setStep(4); // Move to time slot selection
+      setStep(5); // Move to time slot selection
       
       // Load available slots filtered by customer's zip
       const slotsRef = collection(db, 'slots');
@@ -316,7 +359,7 @@ export default function Signup() {
   // Handle confirm and pay - move to payment step
   const handleConfirmAndPay = () => {
     setShowQuoteModal(false);
-    setStep(5); // Move to payment step
+    setStep(6); // Move to payment step
   };
 
   // Step 5: Complete Booking After Payment
@@ -461,7 +504,49 @@ export default function Signup() {
         </DialogContent>
       </Dialog>
 
-      {/* Quote Confirmation Modal */}
+      {/* Price Quote Modal (After Dog Info) */}
+      <Dialog open={showPriceQuoteModal} onOpenChange={setShowPriceQuoteModal}>
+        <DialogContent className="sm:max-w-md" data-testid="modal-price-quote">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl">Your Service Quote</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              Based on the number of dogs you have
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-muted-foreground">Number of Dogs</h3>
+              <p className="text-base" data-testid="text-price-quote-dogs">
+                {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''}
+              </p>
+              {formData.dog_names.filter(name => name.trim() !== '').length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {formData.dog_names.filter(name => name.trim() !== '').join(', ')}
+                </p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm text-muted-foreground">Service Price</h3>
+              <p className="text-2xl font-bold text-primary" data-testid="text-price-quote-amount">
+                ${calculateQuote(formData.dog_count)}
+              </p>
+              <p className="text-xs text-muted-foreground">Per service</p>
+            </div>
+          </div>
+
+          <Button 
+            onClick={handlePriceQuoteConfirm}
+            className="w-full"
+            data-testid="button-continue-from-quote"
+          >
+            Continue
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Booking Review Modal (After Time Selection) */}
       <Dialog open={showQuoteModal} onOpenChange={setShowQuoteModal}>
         <DialogContent className="sm:max-w-md" data-testid="modal-quote">
           <DialogHeader>
@@ -622,24 +707,27 @@ export default function Signup() {
             {step === 1 && 'Check Service Area'}
             {step === 2 && 'Create Your Account'}
             {step === 3 && `Welcome ${formData.name}!`}
-            {step === 4 && 'Choose Your Time'}
-            {step === 5 && 'Payment Details'}
+            {step === 4 && `Welcome ${formData.name}!`}
+            {step === 5 && 'Choose Your Time'}
+            {step === 6 && 'Payment Details'}
           </CardTitle>
           <CardDescription className="text-base">
             {step === 1 && 'See if we service your area'}
             {step === 2 && 'Set up your account to get started'}
-            {step === 3 && 'Tell us about your property'}
-            {step === 4 && 'Select a convenient service time'}
-            {step === 5 && 'Complete your booking'}
+            {step === 3 && 'Tell us about your dog'}
+            {step === 4 && 'Tell us about your property'}
+            {step === 5 && 'Select a convenient service time'}
+            {step === 6 && 'Complete your booking'}
           </CardDescription>
           
           {/* Progress Indicator */}
           <div className="flex items-center justify-center gap-2 mt-6">
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 4 ? 'bg-primary' : 'bg-muted'}`} />
-            <div className={`h-2 w-12 rounded-full transition-all ${step >= 5 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 1 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 4 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 5 ? 'bg-primary' : 'bg-muted'}`} />
+            <div className={`h-2 w-10 rounded-full transition-all ${step >= 6 ? 'bg-primary' : 'bg-muted'}`} />
           </div>
         </CardHeader>
         <CardContent className="px-6 pb-6">
@@ -775,8 +863,80 @@ export default function Signup() {
             </form>
           )}
 
-          {/* Step 3: Your Information (Address, Phone, Dog Count) */}
+          {/* Step 3: Dog Information */}
           {step === 3 && (
+            <form onSubmit={handleDogInfoSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="dog_count">How many dogs do you have?</Label>
+                <Input
+                  id="dog_count"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={formData.dog_count}
+                  onChange={(e) => {
+                    const count = parseInt(e.target.value) || 1;
+                    setFormData({ 
+                      ...formData, 
+                      dog_count: count,
+                      dog_names: Array(count).fill('').map((_, i) => formData.dog_names[i] || '')
+                    });
+                  }}
+                  required
+                  data-testid="input-dog-count"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              {formData.dog_count > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Dog Names (Optional)</Label>
+                  {Array.from({ length: formData.dog_count }, (_, index) => (
+                    <Input
+                      key={index}
+                      placeholder={`Dog ${index + 1} name`}
+                      value={formData.dog_names[index] || ''}
+                      onChange={(e) => {
+                        const newNames = [...formData.dog_names];
+                        newNames[index] = e.target.value;
+                        setFormData({ ...formData, dog_names: newNames });
+                      }}
+                      data-testid={`input-dog-name-${index}`}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-4 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(2)}
+                  data-testid="button-back"
+                >
+                  Back
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={loading}
+                  data-testid="button-next-dog-info"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Next'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 4: Property Information (Address, Phone) */}
+          {step === 4 && (
             <form onSubmit={handleInformationSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
@@ -900,25 +1060,11 @@ export default function Signup() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dog_count">Number of Dogs</Label>
-                <Input
-                  id="dog_count"
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={formData.dog_count}
-                  onChange={(e) => setFormData({ ...formData, dog_count: parseInt(e.target.value) })}
-                  required
-                  data-testid="input-dog-count"
-                />
-              </div>
-
               <div className="flex gap-4">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(3)}
                   data-testid="button-back"
                 >
                   Back
@@ -936,8 +1082,8 @@ export default function Signup() {
             </form>
           )}
 
-          {/* Step 4: Select Time Slot */}
-          {step === 4 && (
+          {/* Step 5: Select Time Slot */}
+          {step === 5 && (
             <div className="space-y-4">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -993,8 +1139,8 @@ export default function Signup() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setStep(3)}
-                      data-testid="button-back-step4"
+                      onClick={() => setStep(4)}
+                      data-testid="button-back-step5"
                     >
                       Back
                     </Button>
@@ -1022,8 +1168,8 @@ export default function Signup() {
             </div>
           )}
 
-          {/* Step 5: Payment Form (Placeholder) */}
-          {step === 5 && (
+          {/* Step 6: Payment Form (Placeholder) */}
+          {step === 6 && (
             <form onSubmit={handleCompleteBooking} className="space-y-4">
               <div className="bg-muted/50 p-4 rounded-lg space-y-2 mb-4">
                 <h3 className="font-semibold">Booking Summary</h3>
