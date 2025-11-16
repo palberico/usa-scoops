@@ -35,10 +35,12 @@ The application employs a client-side Firebase architecture, with all database o
     *   **Recurring Slots**: Defined by `day_of_week` (0-6) and time window, with empty `date` field. Displayed as "Every [Day]" format.
     *   **One-Time Slots**: Traditional date-based slots with specific calendar date.
     *   **Visit Scheduling**: Uses `calculateNextServiceDate()` helper to compute next service date for recurring slots by finding next occurrence of target day and applying time window.
-    *   **8-Week Rolling Buffer**: When customers sign up for recurring service, system creates 8 future visits (2 months of weekly appointments). All visits linked via `recurring_group_id` (UUID). Auto-replenishment maintains buffer:
-        *   When technician completes a visit, system creates next week's visit to maintain 8-week buffer
+    *   **24-Week Rolling Buffer**: When customers sign up for recurring service, system creates 24 future visits (6 months of weekly appointments). All visits linked via `recurring_group_id` (UUID). Auto-replenishment maintains buffer:
+        *   When technician completes a visit, system creates next week's visit to maintain 24-week buffer
         *   When customer reschedules, visit is removed from recurring group and replacement visit created 7 days after latest scheduled visit
         *   Replacement uses original slot_id to keep recurring series anchored to original time/day
+    *   **Customer Portal Pagination**: Recurring schedule displays 4 visits per page with Previous/Next controls. Pagination automatically resets when recurring group changes and clamps to valid range when visit count changes.
+    *   **Technician Portal Efficiency**: Uses date-scoped Firestore queries with composite indexes on (status, scheduled_for) to fetch only the selected day's visits, avoiding full table scans.
     *   **Reschedule Flexibility**: Customers can reschedule any visit to any available slot (recurring or one-time, any day). Rescheduled visits become one-time appointments (removed from recurring group).
     *   **Data Integrity**: Visits store both `scheduled_for` timestamp and recurring metadata (`is_recurring`, `recurring_day_of_week`, `recurring_window_start`, `recurring_window_end`, `recurring_group_id`) to track schedule type and buffer maintenance.
     *   **Slot Accounting**: `booked_count` tracks subscription holders for recurring slots, not individual visit occurrences. Only adjusted on subscription enrollment/cancellation, not individual reschedules.

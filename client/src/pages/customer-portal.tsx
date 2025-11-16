@@ -47,22 +47,33 @@ export default function CustomerPortal() {
   const [selectedNewSlot, setSelectedNewSlot] = useState<Slot | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [schedulePage, setSchedulePage] = useState(0);
+  const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, [user]);
 
-  // Clamp pagination when upcoming visits change
+  // Reset/clamp pagination when upcoming visits or recurring group changes
   useEffect(() => {
     if (upcomingVisits.length > 0) {
-      const visitsPerPage = 4;
-      const totalPages = Math.ceil(upcomingVisits.length / visitsPerPage);
-      // Clamp page to valid range
-      setSchedulePage(prev => Math.min(prev, totalPages - 1));
+      const firstRecurringVisit = upcomingVisits.find(v => v.visit.is_recurring);
+      const newGroupId = firstRecurringVisit?.visit.recurring_group_id || null;
+      
+      // If the recurring group changed, reset to page 0
+      if (newGroupId && newGroupId !== currentGroupId) {
+        setCurrentGroupId(newGroupId);
+        setSchedulePage(0);
+      } else {
+        // Otherwise just clamp to valid range
+        const visitsPerPage = 4;
+        const totalPages = Math.ceil(upcomingVisits.length / visitsPerPage);
+        setSchedulePage(prev => Math.min(prev, totalPages - 1));
+      }
     } else {
       setSchedulePage(0);
+      setCurrentGroupId(null);
     }
-  }, [upcomingVisits]);
+  }, [upcomingVisits, currentGroupId]);
 
   const loadData = async () => {
     if (!user) return;
