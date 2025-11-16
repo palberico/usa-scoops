@@ -37,6 +37,7 @@ export default function CustomerPortal() {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [nextVisit, setNextVisit] = useState<{ visit: Visit; slot: Slot } | null>(null);
+  const [upcomingVisits, setUpcomingVisits] = useState<Array<{ visit: Visit; slot: Slot }>>([]);
   const [pastVisits, setPastVisits] = useState<Array<{ visit: Visit; slot: Slot }>>([]);
   const [messageForm, setMessageForm] = useState({ subject: '', body: '' });
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -69,7 +70,6 @@ export default function CustomerPortal() {
       );
       const visitsSnapshot = await getDocs(q);
 
-      const now = new Date();
       let upcoming: Array<{ visit: Visit; slot: Slot }> = [];
       let past: Array<{ visit: Visit; slot: Slot }> = [];
 
@@ -82,7 +82,8 @@ export default function CustomerPortal() {
           const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
           const visitData = { visit, slot };
 
-          if (visit.status === 'scheduled' && visit.scheduled_for.toDate() > now) {
+          // Scheduled visits are "upcoming" regardless of time (until completed/cancelled)
+          if (visit.status === 'scheduled') {
             upcoming.push(visitData);
           } else {
             past.push(visitData);
@@ -90,12 +91,16 @@ export default function CustomerPortal() {
         }
       }
 
-      // Set next visit (earliest upcoming)
+      // Set next visit (earliest upcoming) and all upcoming visits
       if (upcoming.length > 0) {
         upcoming.sort((a, b) => 
           a.visit.scheduled_for.toDate().getTime() - b.visit.scheduled_for.toDate().getTime()
         );
         setNextVisit(upcoming[0]);
+        setUpcomingVisits(upcoming);
+      } else {
+        setNextVisit(null);
+        setUpcomingVisits([]);
       }
 
       setPastVisits(past);
@@ -504,6 +509,68 @@ export default function CustomerPortal() {
                 Please make sure your dog is secure before our technician arrives.
               </span>
             </div>
+          )}
+
+          {/* Upcoming Recurring Schedule */}
+          {nextVisit?.visit.is_recurring && upcomingVisits.length > 0 && (
+            <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CalendarClock className="h-5 w-5 text-primary" />
+                  Your Recurring Schedule
+                </CardTitle>
+                <CardDescription>
+                  {upcomingVisits.length} visits scheduled • {getDayName(nextVisit.visit.recurring_day_of_week || 0)}s at {nextVisit.slot.window_start}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain an 8-week schedule so you're always covered!
+                  </p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Day</TableHead>
+                        <TableHead>Time</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {upcomingVisits.map(({ visit, slot }, index) => {
+                        const visitDate = visit.scheduled_for.toDate();
+                        const now = new Date();
+                        const isPast = visitDate < now;
+                        
+                        return (
+                          <TableRow 
+                            key={visit.id} 
+                            data-testid={`row-upcoming-visit-${visit.id}`}
+                            className={index === 0 ? 'bg-primary/5' : ''}
+                          >
+                            <TableCell className="font-medium">
+                              {format(visitDate, 'MMM d, yyyy')}
+                              {index === 0 && !isPast && (
+                                <Badge variant="default" className="ml-2">Next</Badge>
+                              )}
+                              {isPast && (
+                                <Badge variant="secondary" className="ml-2">Pending</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {getDayName(visitDate.getDay())}
+                            </TableCell>
+                            <TableCell>
+                              {slot.window_start} - {slot.window_end}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Visit History */}
