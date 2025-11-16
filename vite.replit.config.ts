@@ -5,6 +5,6 @@ import baseConfig from "./vite.config.js";
 // This adds allowedHosts to work with Replit's preview domains
 export default mergeConfig(await baseConfig, defineConfig({
   server: {
-    allowedHosts: ["all"],
+    allowedHosts: true,
   },
 }));
