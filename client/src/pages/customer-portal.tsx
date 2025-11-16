@@ -432,11 +432,11 @@ export default function CustomerPortal() {
       {/* Header */}
       <header className="bg-white dark:bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold text-[hsl(210,100%,25%)]" data-testid="heading-customer-portal">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 sm:h-16">
+            <h1 className="text-xl sm:text-2xl font-bold text-[hsl(210,100%,25%)]" data-testid="heading-customer-portal">
               Hello {customer?.name || user?.email?.split('@')[0] || 'there'}!
             </h1>
-            <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
+            <Button variant="outline" onClick={handleSignOut} data-testid="button-logout" className="w-full sm:w-auto">
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
@@ -559,12 +559,13 @@ export default function CustomerPortal() {
                     <p className="text-sm text-muted-foreground mb-3">
                       Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain a 24-week schedule so you're always covered!
                     </p>
+                  <div className="overflow-x-auto -mx-6 px-6">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Day</TableHead>
-                        <TableHead>Time</TableHead>
+                        <TableHead className="min-w-[120px]">Date</TableHead>
+                        <TableHead className="min-w-[80px]">Day</TableHead>
+                        <TableHead className="min-w-[120px]">Time</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -600,11 +601,12 @@ export default function CustomerPortal() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                   
                   {/* Pagination Controls */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div className="text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t">
+                      <div className="text-sm text-muted-foreground text-center sm:text-left">
                         Showing {startIndex + 1}-{Math.min(endIndex, upcomingVisits.length)} of {upcomingVisits.length} visits
                       </div>
                       <div className="flex gap-2">
@@ -650,12 +652,13 @@ export default function CustomerPortal() {
                   No visit history yet
                 </p>
               ) : (
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead className="min-w-[120px]">Date</TableHead>
+                      <TableHead className="min-w-[120px]">Time</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -672,6 +675,7 @@ export default function CustomerPortal() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>
