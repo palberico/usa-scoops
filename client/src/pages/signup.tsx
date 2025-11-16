@@ -71,7 +71,7 @@ export default function Signup() {
     phone: '',
     street: '',
     city: '',
-    state: '',
+    state: 'UT',
     gate_code: '',
     notes: '',
     dog_count: 1,
@@ -621,7 +621,7 @@ export default function Signup() {
           <CardTitle className="text-3xl font-bold" data-testid="heading-signup">
             {step === 1 && 'Check Service Area'}
             {step === 2 && 'Create Your Account'}
-            {step === 3 && `Welcome ${formData.name}! Tell us about your property`}
+            {step === 3 && `Welcome ${formData.name}!`}
             {step === 4 && 'Choose Your Time'}
             {step === 5 && 'Payment Details'}
           </CardTitle>
