@@ -30,16 +30,24 @@ The application employs a client-side Firebase architecture, with all database o
     - Automated quote calculation: $15 base + $5 per additional dog
     - Dog names are optional but stored in customer profile for personalization
 *   **Customer Portal**: Allows customers to view upcoming/past visits (displays recurring schedule with next service date), cancel/reschedule services to any available slot, and send support messages.
-*   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete.
-*   **Admin Dashboard**: Provides administrators with tools to manage service zip codes, create time slots (recurring and one-time), and oversee all visits and bookings.
+*   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete. Features shared PortalHeader component with mobile-responsive drawer navigation.
+*   **Admin Dashboard**: Provides administrators with tools to:
+    - Manage service zip codes
+    - Create time slots (recurring and one-time)
+    - **Pricing Configuration**: Dynamic pricing system with separate rates for recurring and one-time services. Admins can configure base price and additional dog pricing through Pricing tab.
+    - **Upcoming Week View**: Displays all scheduled visits within the next 7 days with technician assignment status
+    - **Technician Assignment**: Assign technicians to visits via detail dialog with dropdown selector
+    - Oversee all visits and bookings with status filtering
+    - Features shared PortalHeader component with mobile-responsive drawer navigation and portal switching (Admin ↔ Tech)
 *   **Authentication & Security**: Implements Firebase Auth (email/password), role-based route protection, and Firestore Security Rules for data access control.
 
 ### System Design Choices
 
-*   **Data Model**: Utilizes Firestore collections for `customers`, `service_zips`, `slots`, `visits`, `technicians`, `messages`, and `waitlist`, each structured to support specific application functionalities.
+*   **Data Model**: Utilizes Firestore collections for `customers`, `service_zips`, `slots`, `visits`, `technicians`, `messages`, `waitlist`, and `pricing`, each structured to support specific application functionalities.
     *   **Slots**: Each slot must include a `zip` field (5-digit zip code) to associate it with a service area. Slots are filtered by customer's zip code during booking.
+    *   **Pricing**: Singleton document at `pricing/default` stores configurable pricing with fields: `recurring_base`, `recurring_additional`, `onetime_base`, `onetime_additional`, `updated_at`. Public read, admin-only write.
 *   **User Roles**: Supports `customer`, `technician`, and `admin` roles with distinct access levels and functionalities. Multi-role support allows users to have both technician and admin access.
-*   **Quote Calculation**: Based on a base price of $15 plus $5 for each additional dog.
+*   **Dynamic Pricing System**: Configurable pricing stored in Firestore with fallback to defaults ($15 base + $5 per additional dog). Admins manage pricing through Admin Dashboard → Pricing tab. Signup flow fetches current pricing on load and applies to all quote calculations. Supports separate rates for recurring vs one-time services.
 *   **Slot Booking**: Ensures data consistency and prevents overbooking using Firestore transactions.
 *   **Role Resolution**: Prioritizes `admin` role and checks both `customers` and `technicians` collections for user roles.
 *   **Recurring Schedules**: Supports both recurring monthly plans (same day/time every week) and one-time bookings:

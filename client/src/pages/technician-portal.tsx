@@ -14,12 +14,13 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, CheckCircle2, LogOut, LayoutDashboard } from 'lucide-react';
+import { Loader2, Calendar, CheckCircle2 } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
+import { PortalHeader } from '@/components/portal-header';
 
 interface VisitWithDetails extends Visit {
   customer: Customer;
@@ -54,31 +55,22 @@ export default function TechnicianPortal() {
       const startTimestamp = Timestamp.fromDate(selectedDateObj);
       const endTimestamp = Timestamp.fromDate(nextDay);
 
-      // Query scheduled visits for the selected date with date range
-      // Note: Requires composite index on (status, scheduled_for)
-      const scheduledQuery = query(
+      // Query visits by date only, filter status in code to avoid composite index
+      const visitsQuery = query(
         visitsRef,
-        where('status', '==', 'scheduled'),
         where('scheduled_for', '>=', startTimestamp),
         where('scheduled_for', '<', endTimestamp),
         orderBy('scheduled_for', 'asc')
       );
-      const scheduledSnapshot = await getDocs(scheduledQuery);
-
-      // Query completed visits for the selected date with date range
-      const completedQuery = query(
-        visitsRef,
-        where('status', '==', 'completed'),
-        where('scheduled_for', '>=', startTimestamp),
-        where('scheduled_for', '<', endTimestamp),
-        orderBy('scheduled_for', 'asc')
-      );
-      const completedSnapshot = await getDocs(completedQuery);
+      const visitsSnapshot = await getDocs(visitsQuery);
 
       const visitsWithDetails: VisitWithDetails[] = [];
       
-      // Process both scheduled and completed visits
-      const allVisitDocs = [...scheduledSnapshot.docs, ...completedSnapshot.docs];
+      // Filter to only scheduled and completed visits
+      const allVisitDocs = visitsSnapshot.docs.filter(doc => {
+        const status = doc.data().status;
+        return status === 'scheduled' || status === 'completed';
+      });
       
       for (const visitDoc of allVisitDocs) {
         const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
@@ -208,26 +200,13 @@ export default function TechnicianPortal() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 sm:h-16">
-            <h1 className="text-xl sm:text-2xl font-bold" data-testid="heading-tech-portal">Technician Portal</h1>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-              {role === 'admin' && (
-                <Button variant="outline" onClick={() => setLocation('/admin')} data-testid="button-admin-portal" className="w-full sm:w-auto">
-                  <LayoutDashboard className="h-4 w-4 mr-2" />
-                  Admin Portal
-                </Button>
-              )}
-              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout" className="w-full sm:w-auto">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PortalHeader
+        title="Technician Portal"
+        role={role as 'admin' | 'technician' | 'customer'}
+        onSignOut={handleSignOut}
+        onSwitchPortal={role === 'admin' ? () => setLocation('/admin') : undefined}
+        switchPortalLabel={role === 'admin' ? 'Admin Portal' : undefined}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid gap-6">

@@ -115,11 +115,34 @@ export interface InsertWaitlist extends Omit<Waitlist, 'id' | 'created_at'> {}
 // User Role Type (stored in customers or technicians collection)
 export type UserRole = 'customer' | 'technician' | 'admin';
 
+// Pricing Types
+export interface Pricing {
+  id: string;
+  recurring_base: number;
+  recurring_additional: number;
+  onetime_base: number;
+  onetime_additional: number;
+  updated_at: Timestamp;
+}
+
+export interface InsertPricing extends Omit<Pricing, 'id' | 'updated_at'> {}
+
+// Default pricing values (fallback)
+export const DEFAULT_PRICING: Omit<Pricing, 'id' | 'updated_at'> = {
+  recurring_base: 15,
+  recurring_additional: 5,
+  onetime_base: 20,
+  onetime_additional: 7,
+};
+
 // Pricing calculation
-export const calculateQuote = (dogCount: number): number => {
-  const basePrice = 15;
-  const pricePerDog = 5;
-  return basePrice + (dogCount - 1) * pricePerDog;
+export const calculateQuote = (dogCount: number, isRecurring: boolean = true, pricing?: Omit<Pricing, 'id' | 'updated_at'>): number => {
+  const config = pricing || DEFAULT_PRICING;
+  if (isRecurring) {
+    return config.recurring_base + (dogCount - 1) * config.recurring_additional;
+  } else {
+    return config.onetime_base + (dogCount - 1) * config.onetime_additional;
+  }
 };
 
 // Helper function to calculate next occurrence of a recurring visit

@@ -34,13 +34,15 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MapPin, Calendar, Plus, Trash2, LogOut, Users } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { Loader2, MapPin, Calendar, Plus, Trash2, DollarSign, User } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { ServiceZip, Slot, Visit, Customer } from '@shared/types';
-import { getDayName } from '@shared/types';
-import { format } from 'date-fns';
+import type { ServiceZip, Slot, Visit, Customer, Pricing, Technician } from '@shared/types';
+import { getDayName, DEFAULT_PRICING } from '@shared/types';
+import { format, addDays, startOfDay, endOfDay } from 'date-fns';
 import { useLocation } from 'wouter';
+import { PortalHeader } from '@/components/portal-header';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface VisitWithCustomer extends Visit {
   customer?: Customer;
@@ -71,10 +73,20 @@ export default function AdminDashboard() {
   
   // Visits
   const [visits, setVisits] = useState<VisitWithCustomer[]>([]);
+  const [upcomingVisits, setUpcomingVisits] = useState<VisitWithCustomer[]>([]);
   const [visitFilter, setVisitFilter] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     status: 'all',
   });
+  
+  // Pricing
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  
+  // Visit Detail Dialog
+  const [selectedVisit, setSelectedVisit] = useState<VisitWithCustomer | null>(null);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [assigningTech, setAssigningTech] = useState(false);
   
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string }>({
@@ -87,6 +99,9 @@ export default function AdminDashboard() {
     loadZips();
     loadSlots();
     loadVisits();
+    loadUpcomingVisits();
+    loadTechnicians();
+    loadPricing();
   }, []);
 
   useEffect(() => {
@@ -414,6 +429,158 @@ export default function AdminDashboard() {
     }
   };
 
+  // Load upcoming visits (next 7 days)
+  const loadUpcomingVisits = async () => {
+    try {
+      const now = Timestamp.fromDate(startOfDay(new Date()));
+      const sevenDaysLater = Timestamp.fromDate(endOfDay(addDays(new Date(), 7)));
+      
+      const visitsRef = collection(db, 'visits');
+      // Query only by date range, filter status in code to avoid composite index requirement
+      const q = query(
+        visitsRef,
+        where('scheduled_for', '>=', now),
+        where('scheduled_for', '<=', sevenDaysLater),
+        orderBy('scheduled_for', 'asc')
+      );
+
+      const snapshot = await getDocs(q);
+      const data: VisitWithCustomer[] = [];
+
+      for (const visitDoc of snapshot.docs) {
+        const visit = { ...visitDoc.data(), id: visitDoc.id } as VisitWithCustomer;
+        
+        // Filter by status in code to avoid composite index
+        if (visit.status !== 'scheduled') continue;
+        
+        // Get customer
+        try {
+          const customerSnap = await getDocs(query(collection(db, 'customers'), where('__name__', '==', visit.customer_uid)));
+          if (!customerSnap.empty) {
+            visit.customer = { ...customerSnap.docs[0].data(), uid: customerSnap.docs[0].id } as Customer;
+          }
+        } catch (e) {
+          console.error('Error loading customer:', e);
+        }
+
+        // Get slot
+        try {
+          const slotSnap = await getDocs(query(collection(db, 'slots'), where('__name__', '==', visit.slot_id)));
+          if (!slotSnap.empty) {
+            visit.slot = { ...slotSnap.docs[0].data(), id: slotSnap.docs[0].id } as Slot;
+          }
+        } catch (e) {
+          console.error('Error loading slot:', e);
+        }
+
+        data.push(visit);
+      }
+
+      setUpcomingVisits(data);
+    } catch (error: any) {
+      console.error('Error loading upcoming visits:', error);
+    }
+  };
+
+  // Load technicians
+  const loadTechnicians = async () => {
+    try {
+      const techsRef = collection(db, 'technicians');
+      const snapshot = await getDocs(techsRef);
+      const data = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        uid: doc.id,
+      })) as Technician[];
+      setTechnicians(data);
+    } catch (error: any) {
+      console.error('Error loading technicians:', error);
+    }
+  };
+
+  // Assign technician to visit
+  const handleAssignTechnician = async (technicianUid: string) => {
+    if (!selectedVisit) return;
+    
+    setAssigningTech(true);
+    try {
+      await updateDoc(doc(db, 'visits', selectedVisit.id), {
+        technician_uid: technicianUid || null,
+      });
+
+      toast({
+        title: 'Success',
+        description: technicianUid ? 'Technician assigned' : 'Technician removed',
+      });
+
+      // Refresh visits
+      await loadVisits();
+      await loadUpcomingVisits();
+      setSelectedVisit(null);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to assign technician',
+      });
+    } finally {
+      setAssigningTech(false);
+    }
+  };
+
+  // Pricing Functions
+  const loadPricing = async () => {
+    setPricingLoading(true);
+    try {
+      const pricingDoc = await getDocs(query(collection(db, 'pricing')));
+      if (!pricingDoc.empty) {
+        const data = pricingDoc.docs[0].data();
+        setPricing({
+          recurring_base: data.recurring_base || DEFAULT_PRICING.recurring_base,
+          recurring_additional: data.recurring_additional || DEFAULT_PRICING.recurring_additional,
+          onetime_base: data.onetime_base || DEFAULT_PRICING.onetime_base,
+          onetime_additional: data.onetime_additional || DEFAULT_PRICING.onetime_additional,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error loading pricing:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load pricing',
+      });
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const handleSavePricing = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPricingLoading(true);
+    try {
+      // Use a fixed document ID for singleton pricing
+      await setDoc(doc(db, 'pricing', 'default'), {
+        recurring_base: pricing.recurring_base,
+        recurring_additional: pricing.recurring_additional,
+        onetime_base: pricing.onetime_base,
+        onetime_additional: pricing.onetime_additional,
+        updated_at: Timestamp.now(),
+      });
+
+      toast({
+        title: 'Success',
+        description: 'Pricing updated successfully',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update pricing',
+      });
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     setLocation('/');
@@ -421,26 +588,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <h1 className="text-2xl font-bold" data-testid="heading-admin-dashboard">Admin Dashboard</h1>
-            <div className="flex items-center gap-4">
-              {role === 'admin' && (
-                <Button variant="outline" onClick={() => setLocation('/tech')} data-testid="button-tech-portal">
-                  <Users className="h-4 w-4 mr-2" />
-                  Tech Portal
-                </Button>
-              )}
-              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <PortalHeader
+        title="Admin Dashboard"
+        role={role as 'admin' | 'technician' | 'customer'}
+        onSignOut={handleSignOut}
+        onSwitchPortal={role === 'admin' ? () => setLocation('/tech') : undefined}
+        switchPortalLabel={role === 'admin' ? 'Tech Portal' : undefined}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="zips" className="space-y-4">
@@ -448,6 +602,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="zips" data-testid="tab-zips">Zip Codes</TabsTrigger>
             <TabsTrigger value="slots" data-testid="tab-slots">Service Slots</TabsTrigger>
             <TabsTrigger value="visits" data-testid="tab-visits">Visits</TabsTrigger>
+            <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
           </TabsList>
 
           {/* Zip Codes Tab */}
@@ -748,9 +903,76 @@ export default function AdminDashboard() {
 
           {/* Visits Tab */}
           <TabsContent value="visits" className="space-y-4">
+            {/* Upcoming Week Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Visits Overview</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Upcoming Week
+                </CardTitle>
+                <CardDescription>Visits scheduled for the next 7 days</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {upcomingVisits.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming visits</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Date</TableHead>
+                          <TableHead className="min-w-[120px]">Time</TableHead>
+                          <TableHead className="min-w-[120px]">Customer</TableHead>
+                          <TableHead className="min-w-[180px]">Address</TableHead>
+                          <TableHead className="min-w-[100px]">Technician</TableHead>
+                          <TableHead className="min-w-[80px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {upcomingVisits.map((visit) => (
+                          <TableRow key={visit.id} data-testid={`row-upcoming-visit-${visit.id}`}>
+                            <TableCell>
+                              {format(visit.scheduled_for.toDate(), 'MMM d, yyyy')}
+                            </TableCell>
+                            <TableCell>
+                              {visit.slot?.window_start} - {visit.slot?.window_end}
+                            </TableCell>
+                            <TableCell>{visit.customer?.name || 'Unknown'}</TableCell>
+                            <TableCell>
+                              {visit.customer?.address.city}, {visit.customer?.address.state}
+                            </TableCell>
+                            <TableCell>
+                              {visit.technician_uid ? (
+                                <Badge variant="secondary">
+                                  {technicians.find(t => t.uid === visit.technician_uid)?.name || 'Assigned'}
+                                </Badge>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Unassigned</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedVisit(visit)}
+                                data-testid={`button-assign-tech-${visit.id}`}
+                              >
+                                <User className="h-4 w-4 mr-1" />
+                                Assign
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>All Visits</CardTitle>
                 <CardDescription>View and manage all visits</CardDescription>
               </CardHeader>
               <CardContent>
@@ -807,6 +1029,127 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Pricing Tab */}
+          <TabsContent value="pricing" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Pricing Configuration
+                </CardTitle>
+                <CardDescription>Manage service pricing for quotes</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSavePricing} className="space-y-6">
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {/* Recurring Pricing */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Recurring Service Pricing</h3>
+                      <div className="space-y-2">
+                        <Label htmlFor="recurring-base">Base Price (First Dog)</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">$</span>
+                          <Input
+                            id="recurring-base"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={pricing.recurring_base}
+                            onChange={(e) => setPricing({ ...pricing, recurring_base: parseFloat(e.target.value) || 0 })}
+                            required
+                            data-testid="input-recurring-base"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="recurring-additional">Additional Dog Price</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">$</span>
+                          <Input
+                            id="recurring-additional"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={pricing.recurring_additional}
+                            onChange={(e) => setPricing({ ...pricing, recurring_additional: parseFloat(e.target.value) || 0 })}
+                            required
+                            data-testid="input-recurring-additional"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* One-Time Pricing */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">One-Time Service Pricing</h3>
+                      <div className="space-y-2">
+                        <Label htmlFor="onetime-base">Base Price (First Dog)</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">$</span>
+                          <Input
+                            id="onetime-base"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={pricing.onetime_base}
+                            onChange={(e) => setPricing({ ...pricing, onetime_base: parseFloat(e.target.value) || 0 })}
+                            required
+                            data-testid="input-onetime-base"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="onetime-additional">Additional Dog Price</Label>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">$</span>
+                          <Input
+                            id="onetime-additional"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={pricing.onetime_additional}
+                            onChange={(e) => setPricing({ ...pricing, onetime_additional: parseFloat(e.target.value) || 0 })}
+                            required
+                            data-testid="input-onetime-additional"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">Pricing Examples</h4>
+                    <div className="grid gap-3 md:grid-cols-2 text-sm text-muted-foreground">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">Recurring:</p>
+                        <p>1 dog: ${pricing.recurring_base.toFixed(2)}</p>
+                        <p>2 dogs: ${(pricing.recurring_base + pricing.recurring_additional).toFixed(2)}</p>
+                        <p>3 dogs: ${(pricing.recurring_base + pricing.recurring_additional * 2).toFixed(2)}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">One-Time:</p>
+                        <p>1 dog: ${pricing.onetime_base.toFixed(2)}</p>
+                        <p>2 dogs: ${(pricing.onetime_base + pricing.onetime_additional).toFixed(2)}</p>
+                        <p>3 dogs: ${(pricing.onetime_base + pricing.onetime_additional * 2).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Button type="submit" disabled={pricingLoading} data-testid="button-save-pricing">
+                    {pricingLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Pricing'
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -835,6 +1178,60 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Visit Detail Dialog */}
+      <Dialog open={!!selectedVisit} onOpenChange={(open) => !open && setSelectedVisit(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Technician</DialogTitle>
+            <DialogDescription>
+              Assign a technician to this visit
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedVisit && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">Visit Details</h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Customer: {selectedVisit.customer?.name}</p>
+                  <p>Date: {format(selectedVisit.scheduled_for.toDate(), 'EEEE, MMM d, yyyy')}</p>
+                  <p>Time: {selectedVisit.slot?.window_start} - {selectedVisit.slot?.window_end}</p>
+                  <p>Address: {selectedVisit.customer?.address.street}, {selectedVisit.customer?.address.city}, {selectedVisit.customer?.address.state} {selectedVisit.customer?.address.zip}</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="technician">Technician</Label>
+                <Select
+                  value={selectedVisit.technician_uid || 'unassigned'}
+                  onValueChange={handleAssignTechnician}
+                  disabled={assigningTech}
+                >
+                  <SelectTrigger id="technician" data-testid="select-technician">
+                    <SelectValue placeholder="Select technician" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {technicians.map((tech) => (
+                      <SelectItem key={tech.uid} value={tech.uid}>
+                        {tech.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {assigningTech && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Updating...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

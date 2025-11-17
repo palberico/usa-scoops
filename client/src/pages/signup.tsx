@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, MapPin, Home, Dog, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, runTransaction, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { calculateQuote, getDayName, calculateNextServiceDate } from '@shared/types';
+import { calculateQuote, getDayName, calculateNextServiceDate, DEFAULT_PRICING } from '@shared/types';
 import type { Slot } from '@shared/types';
 import { format, parse } from 'date-fns';
 
@@ -47,6 +47,7 @@ export default function Signup() {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
   
   const [waitlistData, setWaitlistData] = useState({
     name: '',
@@ -79,6 +80,28 @@ export default function Signup() {
     gate_code: '',
     notes: '',
   });
+
+  // Fetch pricing on component mount
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const pricingSnapshot = await getDocs(collection(db, 'pricing'));
+        if (!pricingSnapshot.empty) {
+          const data = pricingSnapshot.docs[0].data();
+          setPricing({
+            recurring_base: data.recurring_base || DEFAULT_PRICING.recurring_base,
+            recurring_additional: data.recurring_additional || DEFAULT_PRICING.recurring_additional,
+            onetime_base: data.onetime_base || DEFAULT_PRICING.onetime_base,
+            onetime_additional: data.onetime_additional || DEFAULT_PRICING.onetime_additional,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching pricing:', error);
+        // Use default pricing if fetch fails
+      }
+    };
+    fetchPricing();
+  }, []);
 
   // Step 1: Validate Zip Code (no account creation yet)
   const handleZipCheck = async (e: React.FormEvent) => {
@@ -530,7 +553,7 @@ export default function Signup() {
             <div className="space-y-2">
               <h3 className="font-semibold text-sm text-muted-foreground">Service Price</h3>
               <p className="text-2xl font-bold text-primary" data-testid="text-price-quote-amount">
-                ${calculateQuote(formData.dog_count)}
+                ${calculateQuote(formData.dog_count, true, pricing)}
               </p>
               <p className="text-xs text-muted-foreground">Per service</p>
             </div>
@@ -585,7 +608,7 @@ export default function Signup() {
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm text-muted-foreground">Service Price</h3>
                 <p className="text-2xl font-bold text-primary" data-testid="text-quote-price">
-                  ${calculateQuote(formData.dog_count)}
+                  ${calculateQuote(formData.dog_count, true, pricing)}
                 </p>
                 <p className="text-xs text-muted-foreground">Per service</p>
               </div>
@@ -1183,7 +1206,7 @@ export default function Signup() {
                       )} • {selectedSlot.window_start} - {selectedSlot.window_end}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''} • ${calculateQuote(formData.dog_count)} per service
+                      {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''} • ${calculateQuote(formData.dog_count, true, pricing)} per service
                     </p>
                   </>
                 )}

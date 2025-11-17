@@ -87,5 +87,11 @@ service cloud.firestore {
       allow create: if true;
       allow update, delete: if isAdmin();
     }
+    
+    // Pricing - public read, admin-only write
+    match /pricing/{pricingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }
