@@ -296,7 +296,7 @@ export default function TechnicianPortal() {
           </Card>
 
           {/* My Assigned Visits Card */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -306,7 +306,7 @@ export default function TechnicianPortal() {
                 Visits assigned to me for {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
+            <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -392,14 +392,14 @@ export default function TechnicianPortal() {
           </Card>
 
           {/* Scheduled Visits Table */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle>Scheduled Visits</CardTitle>
               <CardDescription>
                 All visits for {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
+            <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -515,7 +515,7 @@ export default function TechnicianPortal() {
           </Card>
 
           {/* Completed Jobs Table */}
-          <Card>
+          <Card className="overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -525,7 +525,7 @@ export default function TechnicianPortal() {
                 Jobs completed on {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
+            <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -556,7 +556,7 @@ export default function TechnicianPortal() {
                       </div>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto -mx-6 px-6">
                   <Table>
                     <TableHeader>
                       <TableRow>
