@@ -14,10 +14,10 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, CheckCircle2 } from 'lucide-react';
+import { Loader2, Calendar, CheckCircle2, User } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Visit, Customer, Slot } from '@shared/types';
+import type { Visit, Customer, Slot, Technician } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
 import { PortalHeader } from '@/components/portal-header';
@@ -25,6 +25,7 @@ import { PortalHeader } from '@/components/portal-header';
 interface VisitWithDetails extends Visit {
   customer: Customer;
   slot: Slot;
+  technician?: Technician;
 }
 
 export default function TechnicianPortal() {
@@ -35,10 +36,37 @@ export default function TechnicianPortal() {
   const [visits, setVisits] = useState<VisitWithDetails[]>([]);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [updatingVisit, setUpdatingVisit] = useState<string | null>(null);
+  const [technicians, setTechnicians] = useState<Record<string, Technician>>({});
+
+  useEffect(() => {
+    loadTechnicians();
+  }, []);
 
   useEffect(() => {
     loadVisits();
-  }, [user, selectedDate]);
+  }, [user, selectedDate, technicians]);
+
+  const loadTechnicians = async () => {
+    try {
+      const customersRef = collection(db, 'customers');
+      const snapshot = await getDocs(customersRef);
+      const techMap: Record<string, Technician> = {};
+      
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.role === 'admin' || data.role === 'technician') {
+          techMap[doc.id] = {
+            ...data,
+            uid: doc.id,
+          } as Technician;
+        }
+      });
+      
+      setTechnicians(techMap);
+    } catch (error: any) {
+      console.error('Error loading technicians:', error);
+    }
+  };
 
   const loadVisits = async () => {
     if (!user) return;
@@ -85,10 +113,14 @@ export default function TechnicianPortal() {
         if (!customerDoc.exists()) continue;
         const customer = { ...customerDoc.data(), uid: customerDoc.id } as Customer;
 
+        // Get technician if assigned
+        const technician = visit.technician_uid ? technicians[visit.technician_uid] : undefined;
+
         visitsWithDetails.push({
           ...visit,
           customer,
           slot,
+          technician,
         });
       }
 
@@ -236,6 +268,102 @@ export default function TechnicianPortal() {
             </CardContent>
           </Card>
 
+          {/* My Assigned Visits Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                My Assigned Visits
+              </CardTitle>
+              <CardDescription>
+                Visits assigned to me for {format(new Date(selectedDate), 'MMMM d, yyyy')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : visits.filter(v => v.status === 'scheduled' && v.technician_uid === user?.uid).length === 0 ? (
+                <p className="text-muted-foreground text-center py-8" data-testid="text-no-assigned-visits">
+                  No visits assigned to you for this date
+                </p>
+              ) : (
+                <div className="overflow-x-auto -mx-6 px-6">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[120px]">Time Window</TableHead>
+                      <TableHead className="min-w-[120px]">Customer</TableHead>
+                      <TableHead className="min-w-[120px]">Phone</TableHead>
+                      <TableHead className="min-w-[200px]">Address</TableHead>
+                      <TableHead className="min-w-[60px]">Dogs</TableHead>
+                      <TableHead className="min-w-[150px]">Notes</TableHead>
+                      <TableHead className="min-w-[120px]">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {visits.filter(v => v.status === 'scheduled' && v.technician_uid === user?.uid).map((visit) => {
+                      const windowStart = visit.recurring_window_start || visit.slot.window_start;
+                      const windowEnd = visit.recurring_window_end || visit.slot.window_end;
+                      
+                      return (
+                        <TableRow key={visit.id} data-testid={`row-my-visit-${visit.id}`}>
+                          <TableCell className="font-medium" data-testid={`text-my-time-${visit.id}`}>
+                            {windowStart} - {windowEnd}
+                          </TableCell>
+                          <TableCell className="font-medium" data-testid={`text-my-customer-${visit.id}`}>
+                            {visit.customer.name}
+                          </TableCell>
+                          <TableCell data-testid={`text-my-phone-${visit.id}`}>
+                            {visit.customer.phone}
+                          </TableCell>
+                          <TableCell data-testid={`text-my-address-${visit.id}`}>
+                            <div className="text-sm">
+                              <div className="font-medium">{visit.customer.address.street}</div>
+                              <div className="text-muted-foreground">
+                                {visit.customer.address.city}, {visit.customer.address.state} {visit.customer.address.zip}
+                              </div>
+                              {visit.customer.address.gate_code && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Gate Code: <span className="font-mono font-semibold">{visit.customer.address.gate_code}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell data-testid={`text-my-dogs-${visit.id}`}>{visit.customer.dog_count}</TableCell>
+                          <TableCell className="max-w-xs" data-testid={`text-my-notes-${visit.id}`}>
+                            <div className="text-sm text-muted-foreground truncate">
+                              {visit.customer.address.notes || visit.notes || '-'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => handleMarkCompleted(visit.id)}
+                              disabled={updatingVisit === visit.id}
+                              data-testid={`button-my-complete-${visit.id}`}
+                            >
+                              {updatingVisit === visit.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                                  Complete
+                                </>
+                              )}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Scheduled Visits Table */}
           <Card>
             <CardHeader>
@@ -263,6 +391,7 @@ export default function TechnicianPortal() {
                       <TableHead className="min-w-[120px]">Phone</TableHead>
                       <TableHead className="min-w-[200px]">Address</TableHead>
                       <TableHead className="min-w-[60px]">Dogs</TableHead>
+                      <TableHead className="min-w-[120px]">Assigned To</TableHead>
                       <TableHead className="min-w-[150px]">Notes</TableHead>
                       <TableHead className="min-w-[120px]">Action</TableHead>
                     </TableRow>
@@ -298,6 +427,17 @@ export default function TechnicianPortal() {
                             </div>
                           </TableCell>
                           <TableCell data-testid={`text-dogs-${visit.id}`}>{visit.customer.dog_count}</TableCell>
+                          <TableCell data-testid={`text-assigned-${visit.id}`}>
+                            {visit.technician ? (
+                              <Badge variant="secondary" className="font-normal">
+                                {visit.technician.name}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="font-normal text-muted-foreground">
+                                Unassigned
+                              </Badge>
+                            )}
+                          </TableCell>
                           <TableCell className="max-w-xs" data-testid={`text-notes-${visit.id}`}>
                             <div className="text-sm text-muted-foreground truncate">
                               {visit.customer.address.notes || visit.notes || '-'}
