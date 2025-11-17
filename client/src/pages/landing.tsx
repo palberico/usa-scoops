@@ -53,7 +53,7 @@ export default function Landing() {
             <Link href="/login">
               <Button 
                 variant="outline" 
-                className="h-14 px-8 text-lg sm:h-12 sm:px-6 sm:text-base bg-background/95 backdrop-blur-sm border-2 border-primary-foreground/20"
+                className="w-full sm:w-auto h-14 px-8 text-lg sm:h-auto sm:px-4 sm:text-base bg-background/95 backdrop-blur-sm border-2 border-primary-foreground/20"
                 data-testid="button-login"
               >
                 Sign In
