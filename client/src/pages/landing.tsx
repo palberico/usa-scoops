@@ -34,7 +34,7 @@ export default function Landing() {
             className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-6"
             data-testid="heading-hero"
           >
-            America's Cleanest Yards, One Scoop at a Time
+            America's Cleanest Yards
           </h1>
           <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-2xl mx-auto">
             Professional pet waste removal service for your home. Enjoy your yard again without the hassle.
