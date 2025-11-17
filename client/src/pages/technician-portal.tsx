@@ -316,7 +316,7 @@ export default function TechnicianPortal() {
                   No visits assigned to you for this date
                 </p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -409,7 +409,7 @@ export default function TechnicianPortal() {
                   No scheduled visits for this date
                 </p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
