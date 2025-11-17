@@ -482,15 +482,17 @@ export default function AdminDashboard() {
     }
   };
 
-  // Load technicians
+  // Load technicians (users with admin or technician role from customers collection)
   const loadTechnicians = async () => {
     try {
-      const techsRef = collection(db, 'technicians');
-      const snapshot = await getDocs(techsRef);
-      const data = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        uid: doc.id,
-      })) as Technician[];
+      const customersRef = collection(db, 'customers');
+      const snapshot = await getDocs(customersRef);
+      const data = snapshot.docs
+        .map(doc => ({
+          ...doc.data(),
+          uid: doc.id,
+        }))
+        .filter((user: any) => user.role === 'admin' || user.role === 'technician') as Technician[];
       setTechnicians(data);
     } catch (error: any) {
       console.error('Error loading technicians:', error);
