@@ -10,8 +10,10 @@ service cloud.firestore {
     // Helper function to check if user has specific role
     function hasRole(role) {
       return isAuthenticated() && 
-             (get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == role ||
-              get(/databases/$(database)/documents/technicians/$(request.auth.uid)).data.role == role);
+             ((exists(/databases/$(database)/documents/customers/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/customers/$(request.auth.uid)).data.role == role) ||
+              (exists(/databases/$(database)/documents/technicians/$(request.auth.uid)) &&
+               get(/databases/$(database)/documents/technicians/$(request.auth.uid)).data.role == role));
     }
     
     // Helper function to check if user is admin
