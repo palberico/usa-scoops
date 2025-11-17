@@ -43,7 +43,7 @@ export default function Landing() {
             <Link href="/signup">
               <Button 
                 size="lg" 
-                className="h-14 px-8 text-lg border-2 border-primary-foreground/20"
+                className="w-48 h-14 text-lg border-2 border-primary-foreground/20"
                 style={{ backgroundColor: '#003366' }}
                 data-testid="button-get-started-hero"
               >
@@ -54,7 +54,7 @@ export default function Landing() {
               <Button 
                 size="lg"
                 variant="outline" 
-                className="w-full h-14 px-8 text-lg sm:w-auto sm:h-auto sm:text-base bg-background/95 backdrop-blur-sm border-2 border-primary-foreground/20"
+                className="w-48 h-14 text-lg bg-background/95 backdrop-blur-sm border-2 border-primary-foreground/20"
                 data-testid="button-login"
               >
                 Sign In
