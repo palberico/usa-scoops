@@ -140,6 +140,33 @@ export default function TechnicianPortal() {
     }
   };
 
+  const handleTakeVisit = async (visitId: string) => {
+    if (!user) return;
+    
+    setUpdatingVisit(visitId);
+    try {
+      await updateDoc(doc(db, 'visits', visitId), {
+        technician_uid: user.uid,
+        updated_at: Timestamp.now(),
+      });
+
+      toast({
+        title: 'Visit Assigned',
+        description: 'Visit has been assigned to you',
+      });
+
+      loadVisits();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to assign visit',
+      });
+    } finally {
+      setUpdatingVisit(null);
+    }
+  };
+
   const handleMarkCompleted = async (visitId: string) => {
     setUpdatingVisit(visitId);
     try {
@@ -279,7 +306,7 @@ export default function TechnicianPortal() {
                 Visits assigned to me for {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -289,7 +316,6 @@ export default function TechnicianPortal() {
                   No visits assigned to you for this date
                 </p>
               ) : (
-                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -359,7 +385,6 @@ export default function TechnicianPortal() {
                     })}
                   </TableBody>
                 </Table>
-                </div>
               )}
             </CardContent>
           </Card>
@@ -369,10 +394,10 @@ export default function TechnicianPortal() {
             <CardHeader>
               <CardTitle>Scheduled Visits</CardTitle>
               <CardDescription>
-                Visits for {format(new Date(selectedDate), 'MMMM d, yyyy')}
+                All visits for {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -382,7 +407,6 @@ export default function TechnicianPortal() {
                   No scheduled visits for this date
                 </p>
               ) : (
-                <div className="overflow-x-auto -mx-6 px-6">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -401,6 +425,7 @@ export default function TechnicianPortal() {
                       // Fallback to slot window times if recurring times not set
                       const windowStart = visit.recurring_window_start || visit.slot.window_start;
                       const windowEnd = visit.recurring_window_end || visit.slot.window_end;
+                      const isAssignedToMe = visit.technician_uid === user?.uid;
                       
                       return (
                         <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
@@ -444,28 +469,43 @@ export default function TechnicianPortal() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => handleMarkCompleted(visit.id)}
-                              disabled={updatingVisit === visit.id}
-                              data-testid={`button-complete-${visit.id}`}
-                            >
-                              {updatingVisit === visit.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                                  Complete
-                                </>
-                              )}
-                            </Button>
+                            {isAssignedToMe ? (
+                              <Button
+                                size="sm"
+                                onClick={() => handleMarkCompleted(visit.id)}
+                                disabled={updatingVisit === visit.id}
+                                data-testid={`button-complete-${visit.id}`}
+                              >
+                                {updatingVisit === visit.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                                    Complete
+                                  </>
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleTakeVisit(visit.id)}
+                                disabled={updatingVisit === visit.id}
+                                data-testid={`button-take-${visit.id}`}
+                              >
+                                {updatingVisit === visit.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Take'
+                                )}
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
-                </div>
               )}
             </CardContent>
           </Card>
@@ -481,7 +521,7 @@ export default function TechnicianPortal() {
                 Jobs completed on {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="max-h-[400px] md:max-h-none overflow-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
