@@ -31,9 +31,13 @@ The application employs a client-side Firebase architecture, with all database o
     - Dog names are optional but stored in customer profile for personalization
 *   **Customer Portal**: Allows customers to view upcoming/past visits (displays recurring schedule with next service date), cancel/reschedule services to any available slot, and send support messages.
 *   **Technician Portal**: Enables technicians to view and manage their work:
-    - **My Assigned Visits**: Dedicated card showing only visits assigned to the logged-in technician
-    - **Scheduled Visits**: Complete view of all scheduled visits for selected day with "Assigned To" column for coverage visibility
+    - **My Assigned Visits**: Dedicated card showing only visits assigned to the logged-in technician with "Complete" button
+    - **Scheduled Visits**: Complete view of ALL scheduled visits for selected day with:
+        - "Assigned To" column showing technician assignment status
+        - "Complete" button for visits assigned to current technician
+        - Red "Take" button for unassigned or other technicians' visits (allows self-service reassignment)
     - **Completed Jobs**: View of all completed visits with statistics
+    - **Mobile Optimization**: Cards have fixed heights (400px) on mobile with internal scrolling for better UX
     - Features shared PortalHeader component with mobile-responsive drawer navigation
 *   **Admin Dashboard**: Provides administrators with tools to:
     - Manage service zip codes
