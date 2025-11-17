@@ -30,7 +30,11 @@ The application employs a client-side Firebase architecture, with all database o
     - Automated quote calculation: $15 base + $5 per additional dog
     - Dog names are optional but stored in customer profile for personalization
 *   **Customer Portal**: Allows customers to view upcoming/past visits (displays recurring schedule with next service date), cancel/reschedule services to any available slot, and send support messages.
-*   **Technician Portal**: Enables technicians to view assigned visits, access customer details, and mark visits as complete. Features shared PortalHeader component with mobile-responsive drawer navigation.
+*   **Technician Portal**: Enables technicians to view and manage their work:
+    - **My Assigned Visits**: Dedicated card showing only visits assigned to the logged-in technician
+    - **Scheduled Visits**: Complete view of all scheduled visits for selected day with "Assigned To" column for coverage visibility
+    - **Completed Jobs**: View of all completed visits with statistics
+    - Features shared PortalHeader component with mobile-responsive drawer navigation
 *   **Admin Dashboard**: Provides administrators with tools to:
     - Manage service zip codes
     - Create time slots (recurring and one-time)
