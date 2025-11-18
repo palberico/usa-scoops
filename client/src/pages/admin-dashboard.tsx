@@ -692,10 +692,11 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
             <TabsTrigger value="visits" data-testid="tab-visits">Visits</TabsTrigger>
             <TabsTrigger value="slots" data-testid="tab-slots">Service Slots</TabsTrigger>
             <TabsTrigger value="zips" data-testid="tab-zips">Zip Codes</TabsTrigger>
+            <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
             <TabsTrigger value="messages" data-testid="tab-messages" className="relative">
               <Mail className="h-4 w-4 mr-2" />
               Messages
@@ -705,7 +706,6 @@ export default function AdminDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
           </TabsList>
 
           {/* Zip Codes Tab */}
