@@ -4,9 +4,9 @@ import { collection, getDocs } from 'firebase/firestore';
 import { TechnicianProfile } from '@shared/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useLocation } from 'wouter';
+import logoUrl from '@/../../client/public/logo-full.png';
 
 export default function AboutPage() {
   const [, navigate] = useLocation();
@@ -36,18 +36,18 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="mb-6"
-          data-testid="button-back-home"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Home
-        </Button>
-
         <div className="space-y-12">
           <div className="text-center space-y-6">
+            <div className="flex justify-center mb-6">
+              <img 
+                src={logoUrl} 
+                alt="USA Scoops Logo" 
+                className="h-16 lg:h-20 cursor-pointer"
+                onClick={() => navigate('/')}
+                data-testid="img-logo"
+              />
+            </div>
+            
             <h1 className="text-4xl lg:text-5xl font-bold text-primary">
               About USA Scoops
             </h1>
@@ -88,22 +88,22 @@ export default function AboutPage() {
                 {profiles.map((profile) => (
                   <Card
                     key={profile.uid}
-                    className="hover-elevate active-elevate-2 cursor-pointer transition-all"
+                    className="bg-white dark:bg-white border-0 cursor-pointer no-default-hover-elevate no-default-active-elevate"
                     onClick={() => navigate(`/technicians/${profile.uid}`)}
                     data-testid={`card-technician-${profile.uid}`}
                   >
                     <CardContent className="p-6 flex flex-col items-center space-y-4">
                       <Avatar className="h-24 w-24">
                         <AvatarImage src={profile.avatar_url} />
-                        <AvatarFallback>
-                          <User className="h-12 w-12" />
+                        <AvatarFallback className="bg-gray-100">
+                          <User className="h-12 w-12 text-gray-400" />
                         </AvatarFallback>
                       </Avatar>
                       <div className="text-center space-y-1">
-                        <h3 className="font-semibold text-lg" data-testid={`text-name-${profile.uid}`}>
+                        <h3 className="font-semibold text-lg text-gray-900" data-testid={`text-name-${profile.uid}`}>
                           {profile.display_name}
                         </h3>
-                        <p className="text-sm text-muted-foreground" data-testid={`text-title-${profile.uid}`}>
+                        <p className="text-sm text-gray-600" data-testid={`text-title-${profile.uid}`}>
                           {profile.title}
                         </p>
                       </div>
