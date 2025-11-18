@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -21,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, CheckCircle2, User, UserPlus, Info } from 'lucide-react';
+import { Loader2, Calendar, CheckCircle2, User, UserPlus, Info, XCircle } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot, Technician } from '@shared/types';
@@ -45,6 +46,10 @@ export default function TechnicianPortal() {
   const [updatingVisit, setUpdatingVisit] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<Record<string, Technician>>({});
   const [detailsVisit, setDetailsVisit] = useState<VisitWithDetails | null>(null);
+  const [completeModalVisit, setCompleteModalVisit] = useState<VisitWithDetails | null>(null);
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [notCompleteModalVisit, setNotCompleteModalVisit] = useState<VisitWithDetails | null>(null);
+  const [notCompleteNotes, setNotCompleteNotes] = useState('');
 
   useEffect(() => {
     loadTechnicians();
@@ -102,10 +107,10 @@ export default function TechnicianPortal() {
 
       const visitsWithDetails: VisitWithDetails[] = [];
       
-      // Filter to only scheduled and completed visits
+      // Filter to only scheduled, completed, and not_complete visits
       const allVisitDocs = visitsSnapshot.docs.filter(doc => {
         const status = doc.data().status;
-        return status === 'scheduled' || status === 'completed';
+        return status === 'scheduled' || status === 'completed' || status === 'not_complete';
       });
       
       for (const visitDoc of allVisitDocs) {
@@ -175,7 +180,7 @@ export default function TechnicianPortal() {
     }
   };
 
-  const handleMarkCompleted = async (visitId: string) => {
+  const handleMarkCompleted = async (visitId: string, notes?: string) => {
     setUpdatingVisit(visitId);
     try {
       // Get the visit being completed
@@ -185,9 +190,10 @@ export default function TechnicianPortal() {
       }
       const visit = { ...visitDoc.data(), id: visitDoc.id } as Visit;
 
-      // Mark visit as completed
+      // Mark visit as completed with optional notes
       await updateDoc(doc(db, 'visits', visitId), {
         status: 'completed',
+        notes: notes || visit.notes || '',
         updated_at: Timestamp.now(),
       });
 
@@ -246,6 +252,33 @@ export default function TechnicianPortal() {
       toast({
         title: 'Visit Completed',
         description: 'Visit marked as completed',
+      });
+
+      loadVisits();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update visit',
+      });
+    } finally {
+      setUpdatingVisit(null);
+    }
+  };
+
+  const handleMarkNotComplete = async (visitId: string, notes: string) => {
+    setUpdatingVisit(visitId);
+    try {
+      // Mark visit as not complete with notes
+      await updateDoc(doc(db, 'visits', visitId), {
+        status: 'not_complete',
+        notes: notes,
+        updated_at: Timestamp.now(),
+      });
+
+      toast({
+        title: 'Visit Marked Not Complete',
+        description: 'Visit has been marked as not complete',
       });
 
       loadVisits();
@@ -370,19 +403,22 @@ export default function TechnicianPortal() {
                             <div className="flex items-center gap-2">
                               <Button
                                 size="icon"
-                                onClick={() => handleMarkCompleted(visit.id)}
-                                disabled={updatingVisit === visit.id}
+                                onClick={() => setCompleteModalVisit(visit)}
                                 data-testid={`button-my-complete-${visit.id}`}
                               >
-                                {updatingVisit === visit.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="h-4 w-4" />
-                                )}
+                                <CheckCircle2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 size="icon"
-                                variant="outline"
+                                variant="destructive"
+                                onClick={() => setNotCompleteModalVisit(visit)}
+                                data-testid={`button-my-not-complete-${visit.id}`}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                className="bg-primary text-primary-foreground hover:bg-primary/90"
                                 onClick={() => setDetailsVisit(visit)}
                                 data-testid={`button-my-details-${visit.id}`}
                               >
@@ -479,18 +515,11 @@ export default function TechnicianPortal() {
                               <Button
                                 size="sm"
                                 className="w-32"
-                                onClick={() => handleMarkCompleted(visit.id)}
-                                disabled={updatingVisit === visit.id}
+                                onClick={() => setCompleteModalVisit(visit)}
                                 data-testid={`button-complete-${visit.id}`}
                               >
-                                {updatingVisit === visit.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                                    Complete
-                                  </>
-                                )}
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Complete
                               </Button>
                             ) : (
                               <Button
@@ -710,30 +739,127 @@ export default function TechnicianPortal() {
                 </div>
               )}
 
-              {/* Complete Button */}
-              <div className="border-t pt-4">
-                <Button
-                  onClick={() => {
-                    handleMarkCompleted(detailsVisit.id);
-                    setDetailsVisit(null);
-                  }}
-                  disabled={updatingVisit === detailsVisit.id}
-                  className="w-full"
-                  data-testid="button-modal-complete"
-                >
-                  {updatingVisit === detailsVisit.id ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Completing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Complete Visit
-                    </>
-                  )}
-                </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete Visit Modal */}
+      <Dialog open={!!completeModalVisit} onOpenChange={(open) => {
+        if (!open) {
+          setCompleteModalVisit(null);
+          setCompleteNotes('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Visit</DialogTitle>
+            <DialogDescription>
+              Add any notes about this visit before marking it as complete
+            </DialogDescription>
+          </DialogHeader>
+          
+          {completeModalVisit && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="complete-notes">Notes (Optional)</Label>
+                <Textarea
+                  id="complete-notes"
+                  placeholder="e.g., Gate was closed, left message, etc."
+                  value={completeNotes}
+                  onChange={(e) => setCompleteNotes(e.target.value)}
+                  rows={4}
+                  data-testid="textarea-complete-notes"
+                />
               </div>
+              
+              <Button
+                onClick={async () => {
+                  await handleMarkCompleted(completeModalVisit.id, completeNotes);
+                  setCompleteModalVisit(null);
+                  setCompleteNotes('');
+                }}
+                disabled={updatingVisit === completeModalVisit.id}
+                className="w-full"
+                data-testid="button-submit-complete"
+              >
+                {updatingVisit === completeModalVisit.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Completing...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete Visit
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Not Complete Visit Modal */}
+      <Dialog open={!!notCompleteModalVisit} onOpenChange={(open) => {
+        if (!open) {
+          setNotCompleteModalVisit(null);
+          setNotCompleteNotes('');
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark Visit as Not Complete</DialogTitle>
+            <DialogDescription>
+              Please provide a reason why this visit could not be completed
+            </DialogDescription>
+          </DialogHeader>
+          
+          {notCompleteModalVisit && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="not-complete-notes">Reason (Required)</Label>
+                <Textarea
+                  id="not-complete-notes"
+                  placeholder="e.g., Customer not home, gate locked, weather conditions, etc."
+                  value={notCompleteNotes}
+                  onChange={(e) => setNotCompleteNotes(e.target.value)}
+                  rows={4}
+                  data-testid="textarea-not-complete-notes"
+                />
+              </div>
+              
+              <Button
+                onClick={async () => {
+                  if (!notCompleteNotes.trim()) {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Notes Required',
+                      description: 'Please provide a reason for not completing this visit',
+                    });
+                    return;
+                  }
+                  await handleMarkNotComplete(notCompleteModalVisit.id, notCompleteNotes);
+                  setNotCompleteModalVisit(null);
+                  setNotCompleteNotes('');
+                }}
+                disabled={updatingVisit === notCompleteModalVisit.id}
+                variant="destructive"
+                className="w-full"
+                data-testid="button-submit-not-complete"
+              >
+                {updatingVisit === notCompleteModalVisit.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Mark as Not Complete
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </DialogContent>

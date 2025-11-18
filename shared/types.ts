@@ -62,7 +62,7 @@ export interface Visit {
   customer_uid: string;
   slot_id: string;
   scheduled_for: Timestamp;
-  status: 'scheduled' | 'completed' | 'skipped' | 'canceled';
+  status: 'scheduled' | 'completed' | 'skipped' | 'canceled' | 'not_complete';
   technician_uid?: string;
   notes?: string;
   // Recurring schedule tracking
