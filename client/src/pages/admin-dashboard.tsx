@@ -546,6 +546,35 @@ export default function AdminDashboard() {
     }
   };
 
+  // Helper function to render status badges
+  const getStatusBadge = (status: string) => {
+    const labels: Record<string, string> = {
+      scheduled: 'Scheduled',
+      completed: 'Completed',
+      canceled: 'Canceled',
+      skipped: 'Skipped',
+      not_complete: 'Not Complete',
+    };
+    
+    // Special styling for completed (green) and not_complete (red)
+    if (status === 'completed') {
+      return (
+        <Badge className="bg-green-600 hover:bg-green-700 text-white" data-testid={`badge-${status}`}>
+          {labels[status] || status}
+        </Badge>
+      );
+    }
+    
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      scheduled: 'default',
+      canceled: 'destructive',
+      skipped: 'destructive',
+      not_complete: 'destructive',
+    };
+    
+    return <Badge variant={variants[status] || 'default'} data-testid={`badge-${status}`}>{labels[status] || status}</Badge>;
+  };
+
   // Pricing Functions
   const loadPricing = async () => {
     setPricingLoading(true);
@@ -1096,6 +1125,7 @@ export default function AdminDashboard() {
                       <option value="all">All</option>
                       <option value="scheduled">Scheduled</option>
                       <option value="completed">Completed</option>
+                      <option value="not_complete">Not Complete</option>
                       <option value="canceled">Canceled</option>
                     </select>
                   </div>
@@ -1126,7 +1156,7 @@ export default function AdminDashboard() {
                           {visit.customer?.address.city}, {visit.customer?.address.state}
                         </TableCell>
                         <TableCell>
-                          <Badge>{visit.status}</Badge>
+                          {getStatusBadge(visit.status)}
                         </TableCell>
                       </TableRow>
                     ))}

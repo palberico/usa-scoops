@@ -138,12 +138,20 @@ export default function CustomerPortal() {
         // Fetch technician name if assigned
         if (next.visit.technician_uid) {
           try {
-            const techDoc = await getDoc(doc(db, 'technicians', next.visit.technician_uid));
+            // Check customers collection first
+            let techDoc = await getDoc(doc(db, 'customers', next.visit.technician_uid));
             if (techDoc.exists()) {
-              const techData = techDoc.data() as Technician;
-              setTechnicianName(techData.name);
+              const techData = techDoc.data();
+              setTechnicianName(techData.name || 'Unknown');
             } else {
-              setTechnicianName(null);
+              // Check technicians collection as fallback
+              techDoc = await getDoc(doc(db, 'technicians', next.visit.technician_uid));
+              if (techDoc.exists()) {
+                const techData = techDoc.data();
+                setTechnicianName(techData.name || 'Unknown');
+              } else {
+                setTechnicianName(null);
+              }
             }
           } catch (error) {
             console.error('Failed to fetch technician:', error);
