@@ -41,7 +41,7 @@ export function PortalHeader({
   // Desktop header with visible buttons
   if (!isMobile) {
     return (
-      <header className="border-b bg-card">
+      <header className="bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <h1 className="text-2xl font-bold" data-testid={`heading-${title.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -71,7 +71,7 @@ export function PortalHeader({
 
   // Mobile header with drawer menu
   return (
-    <header className="border-b bg-card">
+    <header className="bg-white dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <h1 className="text-xl font-bold" data-testid={`heading-${title.toLowerCase().replace(/\s+/g, '-')}`}>
