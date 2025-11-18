@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -23,17 +23,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Visit, Slot, Customer } from '@shared/types';
+import type { Visit, Slot, Customer, Technician } from '@shared/types';
 import { getDayName, calculateNextServiceDate } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function CustomerPortal() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [nextVisit, setNextVisit] = useState<{ visit: Visit; slot: Slot } | null>(null);
@@ -48,6 +57,8 @@ export default function CustomerPortal() {
   const [actionLoading, setActionLoading] = useState(false);
   const [schedulePage, setSchedulePage] = useState(0);
   const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [technicianName, setTechnicianName] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -120,11 +131,31 @@ export default function CustomerPortal() {
         upcoming.sort((a, b) => 
           a.visit.scheduled_for.toDate().getTime() - b.visit.scheduled_for.toDate().getTime()
         );
-        setNextVisit(upcoming[0]);
+        const next = upcoming[0];
+        setNextVisit(next);
         setUpcomingVisits(upcoming);
+
+        // Fetch technician name if assigned
+        if (next.visit.technician_uid) {
+          try {
+            const techDoc = await getDoc(doc(db, 'technicians', next.visit.technician_uid));
+            if (techDoc.exists()) {
+              const techData = techDoc.data() as Technician;
+              setTechnicianName(techData.name);
+            } else {
+              setTechnicianName(null);
+            }
+          } catch (error) {
+            console.error('Failed to fetch technician:', error);
+            setTechnicianName(null);
+          }
+        } else {
+          setTechnicianName(null);
+        }
       } else {
         setNextVisit(null);
         setUpcomingVisits([]);
+        setTechnicianName(null);
       }
 
       setPastVisits(past);
@@ -438,16 +469,50 @@ export default function CustomerPortal() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white dark:bg-white">
+      <header className="bg-white dark:bg-gray-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4 sm:h-16">
-            <h1 className="text-xl sm:text-2xl font-bold text-[hsl(210,100%,25%)]" data-testid="heading-customer-portal">
+          <div className="flex items-center justify-between h-16">
+            <h1 className="text-xl sm:text-2xl font-bold" data-testid="heading-customer-portal">
               Hello {customer?.name || user?.email?.split('@')[0] || 'there'}!
             </h1>
-            <Button variant="outline" onClick={handleSignOut} data-testid="button-logout" className="w-full sm:w-auto">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            
+            {/* Desktop: Show Sign Out button */}
+            {!isMobile && (
+              <Button variant="outline" onClick={handleSignOut} data-testid="button-logout">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
+            
+            {/* Mobile: Show drawer menu */}
+            {isMobile && (
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" data-testid="button-menu">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-3 mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleSignOut();
+                      }}
+                      className="w-full justify-start"
+                      data-testid="button-logout-mobile"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
           </div>
         </div>
       </header>
@@ -473,11 +538,7 @@ export default function CustomerPortal() {
                         </Badge>
                       )}
                       <p className="font-semibold text-lg" data-testid="text-visit-date">
-                        {nextVisit.visit.is_recurring ? (
-                          <>Every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} • Next: {format(nextVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}</>
-                        ) : (
-                          format(nextVisit.visit.scheduled_for.toDate(), 'EEEE, MMMM d, yyyy')
-                        )}
+                        Next Service: {format(nextVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}
                       </p>
                       <p className="text-muted-foreground flex items-center gap-1.5" data-testid="text-visit-time">
                         <Clock className="h-4 w-4" />
@@ -486,11 +547,16 @@ export default function CustomerPortal() {
                     </div>
                     {getStatusBadge(nextVisit.visit.status)}
                   </div>
-                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <span data-testid="text-visit-address">
-                      {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
-                    </span>
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4 mt-0.5" />
+                      <span data-testid="text-visit-address">
+                        {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground pl-6" data-testid="text-technician">
+                      Technician: <span className="font-medium">{technicianName || 'Pending'}</span>
+                    </div>
                   </div>
 
                   {/* Action Buttons - Temporarily hidden, keeping logic for potential future use */}
@@ -552,7 +618,7 @@ export default function CustomerPortal() {
             const paginatedVisits = upcomingVisits.slice(startIndex, endIndex);
             
             return (
-              <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background">
+              <Card className="bg-gradient-to-br from-green-50 to-white dark:from-green-950/20 dark:to-background overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <CalendarClock className="h-5 w-5 text-primary" />
@@ -562,12 +628,12 @@ export default function CustomerPortal() {
                     {upcomingVisits.length} visits scheduled • {getDayName(nextVisit.visit.recurring_day_of_week || 0)}s at {nextVisit.slot.window_start}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-hidden">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground mb-3">
                       Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain a 24-week schedule so you're always covered!
                     </p>
-                  <div className="overflow-x-auto -mx-6 px-6">
+                  <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -646,7 +712,7 @@ export default function CustomerPortal() {
           })()}
 
           {/* Visit History */}
-          <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background">
+          <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-background overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
@@ -654,13 +720,13 @@ export default function CustomerPortal() {
               </CardTitle>
               <CardDescription>Your past service visits</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden">
               {pastVisits.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8" data-testid="text-no-history">
                   No visit history yet
                 </p>
               ) : (
-                <div className="overflow-x-auto -mx-6 px-6">
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
