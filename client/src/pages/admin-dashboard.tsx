@@ -115,7 +115,15 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadVisits();
+    setVisitsPage(0);
   }, [visitFilter]);
+  
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(visits.length / visitsPerPage) - 1);
+    if (visitsPage > maxPage) {
+      setVisitsPage(maxPage);
+    }
+  }, [visits.length, visitsPage, visitsPerPage]);
 
   // Zip Code Functions
   const loadZips = async () => {
