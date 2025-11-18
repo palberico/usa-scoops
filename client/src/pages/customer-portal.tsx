@@ -441,13 +441,6 @@ export default function CustomerPortal() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
-      scheduled: 'default',
-      completed: 'secondary',
-      canceled: 'destructive',
-      skipped: 'destructive',
-      not_complete: 'destructive',
-    };
     const labels: Record<string, string> = {
       scheduled: 'Scheduled',
       completed: 'Completed',
@@ -455,7 +448,24 @@ export default function CustomerPortal() {
       skipped: 'Skipped',
       not_complete: 'Not Complete',
     };
-    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
+    
+    // Special styling for completed (green) and not_complete (red)
+    if (status === 'completed') {
+      return (
+        <Badge className="bg-green-600 hover:bg-green-700 text-white" data-testid={`badge-${status}`}>
+          {labels[status] || status}
+        </Badge>
+      );
+    }
+    
+    const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
+      scheduled: 'default',
+      canceled: 'destructive',
+      skipped: 'destructive',
+      not_complete: 'destructive',
+    };
+    
+    return <Badge variant={variants[status] || 'default'} data-testid={`badge-${status}`}>{labels[status] || status}</Badge>;
   };
 
   if (loading) {
