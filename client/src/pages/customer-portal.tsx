@@ -415,8 +415,16 @@ export default function CustomerPortal() {
       completed: 'secondary',
       canceled: 'destructive',
       skipped: 'destructive',
+      not_complete: 'destructive',
     };
-    return <Badge variant={variants[status] || 'default'}>{status}</Badge>;
+    const labels: Record<string, string> = {
+      scheduled: 'Scheduled',
+      completed: 'Completed',
+      canceled: 'Canceled',
+      skipped: 'Skipped',
+      not_complete: 'Not Complete',
+    };
+    return <Badge variant={variants[status] || 'default'}>{labels[status] || status}</Badge>;
   };
 
   if (loading) {
@@ -659,6 +667,7 @@ export default function CustomerPortal() {
                       <TableHead className="min-w-[120px]">Date</TableHead>
                       <TableHead className="min-w-[120px]">Time</TableHead>
                       <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="min-w-[200px]">Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -671,6 +680,15 @@ export default function CustomerPortal() {
                           {slot.window_start} - {slot.window_end}
                         </TableCell>
                         <TableCell>{getStatusBadge(visit.status)}</TableCell>
+                        <TableCell>
+                          {visit.notes ? (
+                            <p className="text-sm text-muted-foreground" data-testid={`text-notes-${visit.id}`}>
+                              {visit.notes}
+                            </p>
+                          ) : (
+                            <span className="text-xs text-muted-foreground italic">No notes</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
