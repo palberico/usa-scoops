@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, CheckCircle2, User } from 'lucide-react';
+import { Loader2, Calendar, CheckCircle2, User, UserPlus } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot, Technician } from '@shared/types';
@@ -499,7 +499,10 @@ export default function TechnicianPortal() {
                                 {updatingVisit === visit.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  'Take'
+                                  <>
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Take
+                                  </>
                                 )}
                               </Button>
                             )}
