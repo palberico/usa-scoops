@@ -17,6 +17,7 @@ export interface Customer {
   phone: string;
   address: Address;
   dog_count: number;
+  dog_names?: string[];
   status: 'active' | 'paused' | 'prospect';
   role?: 'customer' | 'technician' | 'admin';
   created_at: Timestamp;

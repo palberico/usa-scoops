@@ -13,8 +13,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, CheckCircle2, User, UserPlus } from 'lucide-react';
+import { Loader2, Calendar, CheckCircle2, User, UserPlus, Info } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot, Technician } from '@shared/types';
@@ -37,6 +44,7 @@ export default function TechnicianPortal() {
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [updatingVisit, setUpdatingVisit] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<Record<string, Technician>>({});
+  const [detailsVisit, setDetailsVisit] = useState<VisitWithDetails | null>(null);
 
   useEffect(() => {
     loadTechnicians();
@@ -285,7 +293,7 @@ export default function TechnicianPortal() {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="flex-1 sm:max-w-xs"
+                  className="w-full sm:max-w-xs"
                   data-testid="input-date-filter"
                 />
                 <Button onClick={loadVisits} data-testid="button-refresh-visits" className="w-full sm:w-auto">
@@ -325,8 +333,7 @@ export default function TechnicianPortal() {
                       <TableHead className="min-w-[120px]">Phone</TableHead>
                       <TableHead className="min-w-[200px]">Address</TableHead>
                       <TableHead className="min-w-[60px]">Dogs</TableHead>
-                      <TableHead className="min-w-[150px]">Notes</TableHead>
-                      <TableHead className="min-w-[120px]">Action</TableHead>
+                      <TableHead className="min-w-[100px]">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -359,27 +366,29 @@ export default function TechnicianPortal() {
                             </div>
                           </TableCell>
                           <TableCell data-testid={`text-my-dogs-${visit.id}`}>{visit.customer.dog_count}</TableCell>
-                          <TableCell className="max-w-xs" data-testid={`text-my-notes-${visit.id}`}>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {visit.customer.address.notes || visit.notes || '-'}
-                            </div>
-                          </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => handleMarkCompleted(visit.id)}
-                              disabled={updatingVisit === visit.id}
-                              data-testid={`button-my-complete-${visit.id}`}
-                            >
-                              {updatingVisit === visit.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                                  Complete
-                                </>
-                              )}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="icon"
+                                onClick={() => handleMarkCompleted(visit.id)}
+                                disabled={updatingVisit === visit.id}
+                                data-testid={`button-my-complete-${visit.id}`}
+                              >
+                                {updatingVisit === visit.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => setDetailsVisit(visit)}
+                                data-testid={`button-my-details-${visit.id}`}
+                              >
+                                <Info className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -419,7 +428,6 @@ export default function TechnicianPortal() {
                       <TableHead className="min-w-[200px]">Address</TableHead>
                       <TableHead className="min-w-[60px]">Dogs</TableHead>
                       <TableHead className="min-w-[120px]">Assigned To</TableHead>
-                      <TableHead className="min-w-[150px]">Notes</TableHead>
                       <TableHead className="min-w-[120px]">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -465,11 +473,6 @@ export default function TechnicianPortal() {
                                 Unassigned
                               </Badge>
                             )}
-                          </TableCell>
-                          <TableCell className="max-w-xs" data-testid={`text-notes-${visit.id}`}>
-                            <div className="text-sm text-muted-foreground truncate">
-                              {visit.customer.address.notes || visit.notes || '-'}
-                            </div>
                           </TableCell>
                           <TableCell>
                             {isAssignedToMe ? (
@@ -612,6 +615,129 @@ export default function TechnicianPortal() {
           </Card>
         </div>
       </div>
+
+      {/* Visit Details Modal */}
+      <Dialog open={!!detailsVisit} onOpenChange={(open) => !open && setDetailsVisit(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Visit Details</DialogTitle>
+            <DialogDescription>
+              Complete information for this scheduled visit
+            </DialogDescription>
+          </DialogHeader>
+          
+          {detailsVisit && (
+            <div className="space-y-6">
+              {/* Date and Time */}
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Date</h3>
+                  <p className="text-base font-medium" data-testid="text-modal-date">
+                    {format(detailsVisit.scheduled_for.toDate(), 'MMMM d, yyyy')}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground mb-1">Time Window</h3>
+                  <p className="text-base font-medium" data-testid="text-modal-time">
+                    {detailsVisit.recurring_window_start || detailsVisit.slot.window_start} - {detailsVisit.recurring_window_end || detailsVisit.slot.window_end}
+                  </p>
+                </div>
+              </div>
+
+              {/* Customer Information */}
+              <div className="border-t pt-4 space-y-4">
+                <h3 className="text-lg font-semibold">Customer Information</h3>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Name</h4>
+                  <p className="text-base font-medium" data-testid="text-modal-customer">
+                    {detailsVisit.customer.name}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Phone</h4>
+                  <p className="text-base font-medium" data-testid="text-modal-phone">
+                    {detailsVisit.customer.phone}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Address</h4>
+                  <div className="text-base" data-testid="text-modal-address">
+                    <p className="font-medium">{detailsVisit.customer.address.street}</p>
+                    <p className="text-muted-foreground">
+                      {detailsVisit.customer.address.city}, {detailsVisit.customer.address.state} {detailsVisit.customer.address.zip}
+                    </p>
+                    {detailsVisit.customer.address.gate_code && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Gate Code: <span className="font-mono font-semibold">{detailsVisit.customer.address.gate_code}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dog Information */}
+              <div className="border-t pt-4 space-y-4">
+                <h3 className="text-lg font-semibold">Dog Information</h3>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Number of Dogs</h4>
+                  <p className="text-base font-medium" data-testid="text-modal-dog-count">
+                    {detailsVisit.customer.dog_count}
+                  </p>
+                </div>
+                {detailsVisit.customer.dog_names && detailsVisit.customer.dog_names.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">Dog Names</h4>
+                    <div className="flex flex-wrap gap-2" data-testid="text-modal-dog-names">
+                      {detailsVisit.customer.dog_names.map((name, index) => (
+                        <Badge key={index} variant="secondary" className="font-normal">
+                          {name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notes */}
+              {(detailsVisit.customer.address.notes || detailsVisit.notes) && (
+                <div className="border-t pt-4 space-y-2">
+                  <h3 className="text-lg font-semibold">Notes</h3>
+                  <div className="bg-muted rounded-md p-4">
+                    <p className="text-sm whitespace-pre-wrap" data-testid="text-modal-notes">
+                      {detailsVisit.customer.address.notes || detailsVisit.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Complete Button */}
+              <div className="border-t pt-4">
+                <Button
+                  onClick={() => {
+                    handleMarkCompleted(detailsVisit.id);
+                    setDetailsVisit(null);
+                  }}
+                  disabled={updatingVisit === detailsVisit.id}
+                  className="w-full"
+                  data-testid="button-modal-complete"
+                >
+                  {updatingVisit === detailsVisit.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Completing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Complete Visit
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
