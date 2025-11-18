@@ -398,9 +398,9 @@ export default function AdminDashboard() {
       let q;
       
       if (visitFilter.status === 'all') {
-        q = query(visitsRef, orderBy('scheduled_for', 'desc'));
+        q = query(visitsRef, orderBy('scheduled_for', 'asc'));
       } else {
-        q = query(visitsRef, where('status', '==', visitFilter.status), orderBy('scheduled_for', 'desc'));
+        q = query(visitsRef, where('status', '==', visitFilter.status), orderBy('scheduled_for', 'asc'));
       }
 
       const snapshot = await getDocs(q);
@@ -692,12 +692,12 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
-            <TabsTrigger value="visits" data-testid="tab-visits">Visits</TabsTrigger>
-            <TabsTrigger value="slots" data-testid="tab-slots">Service Slots</TabsTrigger>
-            <TabsTrigger value="zips" data-testid="tab-zips">Zip Codes</TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
-            <TabsTrigger value="messages" data-testid="tab-messages" className="relative">
+          <TabsList className="grid w-full grid-cols-6 lg:flex lg:w-auto lg:grid-cols-none gap-0 lg:gap-1">
+            <TabsTrigger value="visits" data-testid="tab-visits" className="col-span-2 lg:col-span-1">Visits</TabsTrigger>
+            <TabsTrigger value="slots" data-testid="tab-slots" className="col-span-2 lg:col-span-1">Service Slots</TabsTrigger>
+            <TabsTrigger value="zips" data-testid="tab-zips" className="col-span-2 lg:col-span-1">Zip Codes</TabsTrigger>
+            <TabsTrigger value="pricing" data-testid="tab-pricing" className="col-span-3 lg:col-span-1">Pricing</TabsTrigger>
+            <TabsTrigger value="messages" data-testid="tab-messages" className="relative col-span-3 lg:col-span-1">
               <Mail className="h-4 w-4 mr-2" />
               Messages
               {messages.filter(m => m.status === 'open').length > 0 && (
@@ -1138,7 +1138,9 @@ export default function AdminDashboard() {
                 {visits.length > visitsPerPage && (
                   <div className="flex items-center justify-between mt-4">
                     <p className="text-sm text-muted-foreground">
-                      Showing {visitsPage * visitsPerPage + 1} to {Math.min((visitsPage + 1) * visitsPerPage, visits.length)} of {visits.length} visits
+                      <span className="hidden sm:inline">Showing </span>
+                      {visitsPage * visitsPerPage + 1} to {Math.min((visitsPage + 1) * visitsPerPage, visits.length)} of {visits.length}
+                      <span className="hidden sm:inline"> visits</span>
                     </p>
                     <div className="flex gap-2">
                       <Button
