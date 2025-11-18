@@ -117,6 +117,9 @@ export default function TechnicianProfilePage() {
 
       setProfile(profileData);
       setSelectedFile(null);
+      
+      // Navigate back to technician portal after successful save
+      navigate('/tech');
     } catch (error: any) {
       console.error('Error saving profile:', error);
       toast({
@@ -143,7 +146,7 @@ export default function TechnicianProfilePage() {
       <div className="container max-w-2xl mx-auto p-4 lg:p-8">
         <Button
           variant="ghost"
-          onClick={() => navigate('/technician-portal')}
+          onClick={() => navigate('/tech')}
           className="mb-4"
           data-testid="button-back"
         >
@@ -253,7 +256,7 @@ export default function TechnicianProfilePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => navigate('/technician-portal')}
+                  onClick={() => navigate('/tech')}
                   data-testid="button-cancel"
                 >
                   Cancel
