@@ -34,10 +34,10 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, MapPin, Calendar, Plus, Trash2, DollarSign, User } from 'lucide-react';
+import { Loader2, MapPin, Calendar, Plus, Trash2, DollarSign, User, Mail, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { ServiceZip, Slot, Visit, Customer, Pricing, Technician } from '@shared/types';
+import type { ServiceZip, Slot, Visit, Customer, Pricing, Technician, Message } from '@shared/types';
 import { getDayName, DEFAULT_PRICING } from '@shared/types';
 import { format, addDays, startOfDay, endOfDay } from 'date-fns';
 import { useLocation } from 'wouter';
@@ -78,6 +78,8 @@ export default function AdminDashboard() {
     date: format(new Date(), 'yyyy-MM-dd'),
     status: 'all',
   });
+  const [visitsPage, setVisitsPage] = useState(0);
+  const visitsPerPage = 10;
   
   // Pricing
   const [pricing, setPricing] = useState(DEFAULT_PRICING);
@@ -87,6 +89,11 @@ export default function AdminDashboard() {
   const [selectedVisit, setSelectedVisit] = useState<VisitWithCustomer | null>(null);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [assigningTech, setAssigningTech] = useState(false);
+  
+  // Messages
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [customersMap, setCustomersMap] = useState<Record<string, Customer>>({});
+  const [messagesLoading, setMessagesLoading] = useState(false);
   
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string }>({
@@ -102,6 +109,8 @@ export default function AdminDashboard() {
     loadUpcomingVisits();
     loadTechnicians();
     loadPricing();
+    loadMessages();
+    loadCustomers();
   }, []);
 
   useEffect(() => {
@@ -583,6 +592,81 @@ export default function AdminDashboard() {
     }
   };
 
+  // Messages Functions
+  const loadMessages = async () => {
+    setMessagesLoading(true);
+    try {
+      const messagesRef = collection(db, 'messages');
+      const q = query(messagesRef, orderBy('created_at', 'desc'));
+      const snapshot = await getDocs(q);
+      const data: Message[] = [];
+      snapshot.forEach((doc) => {
+        data.push({ ...doc.data(), id: doc.id } as Message);
+      });
+      setMessages(data);
+    } catch (error: any) {
+      console.error('Error loading messages:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to load messages',
+      });
+    } finally {
+      setMessagesLoading(false);
+    }
+  };
+
+  const loadCustomers = async () => {
+    try {
+      const customersRef = collection(db, 'customers');
+      const snapshot = await getDocs(customersRef);
+      const map: Record<string, Customer> = {};
+      snapshot.forEach((doc) => {
+        map[doc.id] = { ...doc.data(), uid: doc.id } as Customer;
+      });
+      setCustomersMap(map);
+    } catch (error: any) {
+      console.error('Error loading customers:', error);
+    }
+  };
+
+  const handleMarkAsRead = async (messageId: string) => {
+    try {
+      await updateDoc(doc(db, 'messages', messageId), {
+        status: 'closed',
+      });
+      toast({
+        title: 'Success',
+        description: 'Message marked as read',
+      });
+      loadMessages();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update message',
+      });
+    }
+  };
+
+  const handleDeleteMessage = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'messages', id));
+      toast({
+        title: 'Success',
+        description: 'Message deleted',
+      });
+      loadMessages();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to delete message',
+      });
+    }
+    setDeleteDialog({ open: false, type: '', id: '' });
+  };
+
   const handleSignOut = async () => {
     await signOut();
     setLocation('/');
@@ -599,11 +683,20 @@ export default function AdminDashboard() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="zips" className="space-y-4">
+        <Tabs defaultValue="visits" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="zips" data-testid="tab-zips">Zip Codes</TabsTrigger>
-            <TabsTrigger value="slots" data-testid="tab-slots">Service Slots</TabsTrigger>
             <TabsTrigger value="visits" data-testid="tab-visits">Visits</TabsTrigger>
+            <TabsTrigger value="slots" data-testid="tab-slots">Service Slots</TabsTrigger>
+            <TabsTrigger value="zips" data-testid="tab-zips">Zip Codes</TabsTrigger>
+            <TabsTrigger value="messages" data-testid="tab-messages" className="relative">
+              <Mail className="h-4 w-4 mr-2" />
+              Messages
+              {messages.filter(m => m.status === 'open').length > 0 && (
+                <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
+                  {messages.filter(m => m.status === 'open').length}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="pricing" data-testid="tab-pricing">Pricing</TabsTrigger>
           </TabsList>
 
@@ -932,7 +1025,11 @@ export default function AdminDashboard() {
                       </TableHeader>
                       <TableBody>
                         {upcomingVisits.map((visit) => (
-                          <TableRow key={visit.id} data-testid={`row-upcoming-visit-${visit.id}`}>
+                          <TableRow 
+                            key={visit.id} 
+                            data-testid={`row-upcoming-visit-${visit.id}`}
+                            className={visit.technician_uid ? 'bg-green-50 dark:bg-green-950/20' : ''}
+                          >
                             <TableCell>
                               {format(visit.scheduled_for.toDate(), 'MMM d, yyyy')}
                             </TableCell>
@@ -1008,7 +1105,7 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visits.map((visit) => (
+                    {visits.slice(visitsPage * visitsPerPage, (visitsPage + 1) * visitsPerPage).map((visit) => (
                       <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
                         <TableCell>
                           {format(visit.scheduled_for.toDate(), 'MMM d, yyyy')}
@@ -1028,6 +1125,118 @@ export default function AdminDashboard() {
                   </TableBody>
                 </Table>
                 </div>
+                
+                {/* Pagination Controls */}
+                {visits.length > visitsPerPage && (
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {visitsPage * visitsPerPage + 1} to {Math.min((visitsPage + 1) * visitsPerPage, visits.length)} of {visits.length} visits
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setVisitsPage(Math.max(0, visitsPage - 1))}
+                        disabled={visitsPage === 0}
+                        data-testid="button-prev-visits"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setVisitsPage(visitsPage + 1)}
+                        disabled={(visitsPage + 1) * visitsPerPage >= visits.length}
+                        data-testid="button-next-visits"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Customer Messages
+                </CardTitle>
+                <CardDescription>Messages from customers via contact form</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {messagesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : messages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No messages yet</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[120px]">Customer</TableHead>
+                          <TableHead className="min-w-[120px]">Date</TableHead>
+                          <TableHead className="min-w-[300px]">Message</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="min-w-[120px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {messages.map((message) => (
+                          <TableRow key={message.id} data-testid={`row-message-${message.id}`}>
+                            <TableCell className="font-medium">
+                              {customersMap[message.customer_uid]?.name || 'Unknown'}
+                            </TableCell>
+                            <TableCell>
+                              {format(message.created_at.toDate(), 'MMM d, yyyy')}
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                <p className="font-medium text-sm">{message.subject}</p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">{message.body}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={message.status === 'open' ? 'destructive' : 'secondary'}>
+                                {message.status === 'open' ? 'Unread' : 'Read'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                {message.status === 'open' && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleMarkAsRead(message.id)}
+                                    data-testid={`button-read-${message.id}`}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => setDeleteDialog({ open: true, type: 'message', id: message.id })}
+                                  data-testid={`button-delete-message-${message.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1172,6 +1381,8 @@ export default function AdminDashboard() {
                   handleDeleteZip(deleteDialog.id);
                 } else if (deleteDialog.type === 'slot') {
                   handleDeleteSlot(deleteDialog.id);
+                } else if (deleteDialog.type === 'message') {
+                  handleDeleteMessage(deleteDialog.id);
                 }
               }}
             >
