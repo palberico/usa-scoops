@@ -61,11 +61,12 @@ export default function TechnicianPortal() {
 
   const loadTechnicians = async () => {
     try {
-      const customersRef = collection(db, 'customers');
-      const snapshot = await getDocs(customersRef);
       const techMap: Record<string, Technician> = {};
       
-      snapshot.docs.forEach(doc => {
+      // Load from customers collection
+      const customersRef = collection(db, 'customers');
+      const customersSnapshot = await getDocs(customersRef);
+      customersSnapshot.docs.forEach(doc => {
         const data = doc.data();
         if (data.role === 'admin' || data.role === 'technician') {
           techMap[doc.id] = {
@@ -74,6 +75,22 @@ export default function TechnicianPortal() {
           } as Technician;
         }
       });
+      
+      // Also load from technicians collection (fallback)
+      try {
+        const techniciansRef = collection(db, 'technicians');
+        const techniciansSnapshot = await getDocs(techniciansRef);
+        techniciansSnapshot.docs.forEach(doc => {
+          if (!techMap[doc.id]) {
+            techMap[doc.id] = {
+              ...doc.data(),
+              uid: doc.id,
+            } as Technician;
+          }
+        });
+      } catch (e) {
+        console.log('Technicians collection not accessible or empty');
+      }
       
       setTechnicians(techMap);
     } catch (error: any) {
@@ -158,8 +175,12 @@ export default function TechnicianPortal() {
     
     setUpdatingVisit(visitId);
     try {
+      // Get the current technician's name
+      const technicianName = technicians[user.uid]?.name || null;
+
       await updateDoc(doc(db, 'visits', visitId), {
         technician_uid: user.uid,
+        technician_name: technicianName,
         updated_at: Timestamp.now(),
       });
 

@@ -135,31 +135,8 @@ export default function CustomerPortal() {
         setNextVisit(next);
         setUpcomingVisits(upcoming);
 
-        // Fetch technician name if assigned
-        if (next.visit.technician_uid) {
-          try {
-            // Check customers collection first
-            let techDoc = await getDoc(doc(db, 'customers', next.visit.technician_uid));
-            if (techDoc.exists()) {
-              const techData = techDoc.data();
-              setTechnicianName(techData.name || 'Unknown');
-            } else {
-              // Check technicians collection as fallback
-              techDoc = await getDoc(doc(db, 'technicians', next.visit.technician_uid));
-              if (techDoc.exists()) {
-                const techData = techDoc.data();
-                setTechnicianName(techData.name || 'Unknown');
-              } else {
-                setTechnicianName(null);
-              }
-            }
-          } catch (error) {
-            console.error('Failed to fetch technician:', error);
-            setTechnicianName(null);
-          }
-        } else {
-          setTechnicianName(null);
-        }
+        // Use the denormalized technician_name from the visit document
+        setTechnicianName(next.visit.technician_name || null);
       } else {
         setNextVisit(null);
         setUpcomingVisits([]);

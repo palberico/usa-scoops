@@ -499,18 +499,35 @@ export default function AdminDashboard() {
     }
   };
 
-  // Load technicians (users with admin or technician role from customers collection)
+  // Load technicians (users with admin or technician role from both customers and technicians collections)
   const loadTechnicians = async () => {
     try {
+      const techMap = new Map<string, Technician>();
+      
+      // Load from customers collection
       const customersRef = collection(db, 'customers');
-      const snapshot = await getDocs(customersRef);
-      const data = snapshot.docs
-        .map(doc => ({
-          ...doc.data(),
-          uid: doc.id,
-        }))
-        .filter((user: any) => user.role === 'admin' || user.role === 'technician') as Technician[];
-      setTechnicians(data);
+      const customersSnapshot = await getDocs(customersRef);
+      customersSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.role === 'admin' || data.role === 'technician') {
+          techMap.set(doc.id, { ...data, uid: doc.id } as Technician);
+        }
+      });
+      
+      // Also load from technicians collection (fallback)
+      try {
+        const techniciansRef = collection(db, 'technicians');
+        const techniciansSnapshot = await getDocs(techniciansRef);
+        techniciansSnapshot.docs.forEach(doc => {
+          if (!techMap.has(doc.id)) {
+            techMap.set(doc.id, { ...doc.data(), uid: doc.id } as Technician);
+          }
+        });
+      } catch (e) {
+        console.log('Technicians collection not accessible or empty');
+      }
+      
+      setTechnicians(Array.from(techMap.values()));
     } catch (error: any) {
       console.error('Error loading technicians:', error);
     }
@@ -522,8 +539,14 @@ export default function AdminDashboard() {
     
     setAssigningTech(true);
     try {
+      // Find the technician's name
+      const technicianName = technicianUid 
+        ? technicians.find(t => t.uid === technicianUid)?.name || null
+        : null;
+
       await updateDoc(doc(db, 'visits', selectedVisit.id), {
         technician_uid: technicianUid || null,
+        technician_name: technicianName,
       });
 
       toast({

@@ -64,6 +64,7 @@ export interface Visit {
   scheduled_for: Timestamp;
   status: 'scheduled' | 'completed' | 'skipped' | 'canceled' | 'not_complete';
   technician_uid?: string;
+  technician_name?: string; // Denormalized technician name for display
   notes?: string;
   // Recurring schedule tracking
   is_recurring?: boolean; // true if this is a recurring monthly plan
