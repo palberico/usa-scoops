@@ -35,7 +35,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MapPin, Calendar, Plus, Trash2, DollarSign, User, Mail, Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ServiceZip, Slot, Visit, Customer, Pricing, Technician, Message } from '@shared/types';
 import { getDayName, DEFAULT_PRICING } from '@shared/types';
@@ -539,14 +539,32 @@ export default function AdminDashboard() {
     
     setAssigningTech(true);
     try {
-      // Find the technician's name
-      const technicianName = technicianUid 
-        ? technicians.find(t => t.uid === technicianUid)?.name || null
-        : null;
+      let technicianName = null;
+      let technicianTitle = null;
+      let technicianAvatarUrl = null;
+
+      if (technicianUid) {
+        // Find the technician's name from loaded technicians
+        technicianName = technicians.find(t => t.uid === technicianUid)?.name || null;
+
+        // Fetch technician profile for title and avatar
+        try {
+          const profileDoc = await getDoc(doc(db, 'technician_profiles', technicianUid));
+          if (profileDoc.exists()) {
+            const profileData = profileDoc.data();
+            technicianTitle = profileData.title || null;
+            technicianAvatarUrl = profileData.avatar_url || null;
+          }
+        } catch (e) {
+          console.log('Technician profile not found');
+        }
+      }
 
       await updateDoc(doc(db, 'visits', selectedVisit.id), {
         technician_uid: technicianUid || null,
         technician_name: technicianName,
+        technician_title: technicianTitle,
+        technician_avatar_url: technicianAvatarUrl,
       });
 
       toast({

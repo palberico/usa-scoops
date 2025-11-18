@@ -65,6 +65,8 @@ export interface Visit {
   status: 'scheduled' | 'completed' | 'skipped' | 'canceled' | 'not_complete';
   technician_uid?: string;
   technician_name?: string; // Denormalized technician name for display
+  technician_title?: string; // Denormalized technician title for display
+  technician_avatar_url?: string; // Denormalized technician avatar for display
   notes?: string;
   // Recurring schedule tracking
   is_recurring?: boolean; // true if this is a recurring monthly plan
@@ -90,6 +92,19 @@ export interface Technician {
 }
 
 export interface InsertTechnician extends Technician {}
+
+// Technician Profile Types (public-facing profile information)
+export interface TechnicianProfile {
+  uid: string; // Same as technician's user UID
+  display_name: string;
+  title: string;
+  owns_dogs: boolean;
+  bio: string;
+  avatar_url?: string; // Firebase Storage download URL
+  updated_at: Timestamp;
+}
+
+export interface InsertTechnicianProfile extends Omit<TechnicianProfile, 'updated_at'> {}
 
 // Message Types
 export interface Message {

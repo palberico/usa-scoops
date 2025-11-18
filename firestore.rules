@@ -98,5 +98,19 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // Technician Profiles - public read, owner/admin write only
+    match /technician_profiles/{profileId} {
+      allow read: if true; // Public can view all profiles
+      allow create: if isAuthenticated() && (
+        request.auth.uid == profileId || // Profile owner can create
+        isAdmin() // Admins can create
+      );
+      allow update: if isAuthenticated() && (
+        request.auth.uid == profileId || // Profile owner can update
+        isAdmin() // Admins can update
+      );
+      allow delete: if isAdmin(); // Only admins can delete profiles
+    }
   }
 }

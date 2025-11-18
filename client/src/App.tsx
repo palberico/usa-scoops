@@ -13,7 +13,10 @@ import Signup from "@/pages/signup";
 import CustomerPortal from "@/pages/customer-portal";
 import BookService from "@/pages/book-service";
 import TechnicianPortal from "@/pages/technician-portal";
+import TechnicianProfilePage from "@/pages/technician-profile";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AboutPage from "@/pages/about";
+import TechnicianProfileView from "@/pages/technician-profile-view";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +26,8 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      <Route path="/about" component={AboutPage} />
+      <Route path="/technicians/:uid" component={TechnicianProfileView} />
 
       {/* Protected Routes */}
       <Route path="/portal">
@@ -40,6 +45,12 @@ function Router() {
       <Route path="/tech">
         <ProtectedRoute allowedRoles={['technician', 'admin']}>
           <TechnicianPortal />
+        </ProtectedRoute>
+      </Route>
+
+      <Route path="/tech/profile">
+        <ProtectedRoute allowedRoles={['technician', 'admin']}>
+          <TechnicianProfilePage />
         </ProtectedRoute>
       </Route>
 

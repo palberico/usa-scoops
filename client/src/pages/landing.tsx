@@ -136,9 +136,20 @@ export default function Landing() {
       {/* Footer */}
       <footer className="py-8 bg-card border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-muted-foreground">
+          <div className="text-center text-muted-foreground space-y-3">
+            <div>
+              <Link href="/about">
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-primary"
+                  data-testid="link-about-us"
+                >
+                  About Us
+                </Button>
+              </Link>
+            </div>
             <p>&copy; 2024 USA Scoops. All rights reserved.</p>
-            <p className="mt-2">Professional Pet Waste Removal Service</p>
+            <p>Professional Pet Waste Removal Service</p>
           </div>
         </div>
       </footer>

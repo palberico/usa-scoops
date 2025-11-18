@@ -14,8 +14,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -59,6 +60,7 @@ export default function CustomerPortal() {
   const [currentGroupId, setCurrentGroupId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [technicianName, setTechnicianName] = useState<string | null>(null);
+  const [showVisitDetailDialog, setShowVisitDetailDialog] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -515,7 +517,11 @@ export default function CustomerPortal() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid gap-6">
           {/* Next Visit Card */}
-          <Card className="bg-gradient-to-br from-[hsl(210,100%,90%)] to-white dark:from-[hsl(210,100%,20%)] dark:to-background" data-testid="card-next-visit">
+          <Card 
+            className="bg-gradient-to-br from-[hsl(210,100%,90%)] to-white dark:from-[hsl(210,100%,20%)] dark:to-background hover-elevate active-elevate-2 cursor-pointer transition-all" 
+            data-testid="card-next-visit"
+            onClick={() => nextVisit && setShowVisitDetailDialog(true)}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
@@ -549,8 +555,11 @@ export default function CustomerPortal() {
                         {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
                       </span>
                     </div>
-                    <div className="text-sm text-muted-foreground pl-6" data-testid="text-technician">
-                      Technician: <span className="font-medium">{technicianName || 'Pending'}</span>
+                    <div className="flex items-start gap-2 text-sm text-muted-foreground" data-testid="text-technician">
+                      <UserCircle2 className="h-4 w-4 mt-0.5" />
+                      <span>
+                        Your yard will be scooped by: <span className="font-medium">{technicianName || 'Pending assignment'}</span>
+                      </span>
                     </div>
                   </div>
 
@@ -930,6 +939,142 @@ export default function CustomerPortal() {
               )}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Visit Detail Dialog */}
+      <Dialog open={showVisitDetailDialog} onOpenChange={setShowVisitDetailDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Visit Details</DialogTitle>
+            <DialogDescription>
+              Complete information about your upcoming visit
+            </DialogDescription>
+          </DialogHeader>
+          
+          {nextVisit && (
+            <div className="space-y-6 py-4">
+              {/* Date and Time */}
+              <div className="space-y-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Schedule
+                </h3>
+                <div className="pl-6 space-y-1">
+                  <p className="font-medium" data-testid="dialog-visit-date">
+                    {format(nextVisit.visit.scheduled_for.toDate(), 'EEEE, MMMM d, yyyy')}
+                  </p>
+                  <p className="text-sm text-muted-foreground" data-testid="dialog-visit-time">
+                    {nextVisit.slot.window_start} - {nextVisit.slot.window_end}
+                  </p>
+                  {nextVisit.visit.is_recurring && (
+                    <Badge variant="secondary" className="mt-1">
+                      Recurring Monthly Plan
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="space-y-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Service Location
+                </h3>
+                <div className="pl-6">
+                  <p className="text-sm" data-testid="dialog-visit-address">
+                    {customer?.address.street}<br />
+                    {customer?.address.city}, {customer?.address.state} {customer?.address.zip}
+                  </p>
+                  {customer?.address.gate_code && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Gate Code: {customer.address.gate_code}
+                    </p>
+                  )}
+                  {customer?.address.notes && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Notes: {customer.address.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Technician */}
+              <div className="space-y-2">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <UserCircle2 className="h-4 w-4" />
+                  Your Scooper
+                </h3>
+                <div className="pl-6">
+                  {nextVisit.visit.technician_uid ? (
+                    <div className="flex items-center gap-3">
+                      <Avatar 
+                        className="h-12 w-12 cursor-pointer hover-elevate active-elevate-2 transition-all"
+                        onClick={() => {
+                          setShowVisitDetailDialog(false);
+                          setLocation(`/technicians/${nextVisit.visit.technician_uid}`);
+                        }}
+                        data-testid="avatar-technician"
+                      >
+                        <AvatarImage src={nextVisit.visit.technician_avatar_url || undefined} />
+                        <AvatarFallback>
+                          <User className="h-6 w-6" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium" data-testid="dialog-technician-name">
+                          {technicianName || nextVisit.visit.technician_name || 'Unknown'}
+                        </p>
+                        {nextVisit.visit.technician_title && (
+                          <p className="text-sm text-muted-foreground" data-testid="dialog-technician-title">
+                            {nextVisit.visit.technician_title}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Click avatar to view profile
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Technician will be assigned soon
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <h3 className="font-semibold">Status</h3>
+                <div className="pl-6">
+                  {getStatusBadge(nextVisit.visit.status)}
+                </div>
+              </div>
+
+              {/* Notes if any */}
+              {nextVisit.visit.notes && (
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Visit Notes</h3>
+                  <div className="pl-6">
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {nextVisit.visit.notes}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Button */}
+              <div className="flex justify-end pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowVisitDetailDialog(false)}
+                  data-testid="button-close-detail"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

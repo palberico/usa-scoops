@@ -177,10 +177,26 @@ export default function TechnicianPortal() {
     try {
       // Get the current technician's name
       const technicianName = technicians[user.uid]?.name || null;
+      let technicianTitle = null;
+      let technicianAvatarUrl = null;
+
+      // Fetch technician profile for title and avatar
+      try {
+        const profileDoc = await getDoc(doc(db, 'technician_profiles', user.uid));
+        if (profileDoc.exists()) {
+          const profileData = profileDoc.data();
+          technicianTitle = profileData.title || null;
+          technicianAvatarUrl = profileData.avatar_url || null;
+        }
+      } catch (e) {
+        console.log('Technician profile not found');
+      }
 
       await updateDoc(doc(db, 'visits', visitId), {
         technician_uid: user.uid,
         technician_name: technicianName,
+        technician_title: technicianTitle,
+        technician_avatar_url: technicianAvatarUrl,
         updated_at: Timestamp.now(),
       });
 
@@ -327,6 +343,7 @@ export default function TechnicianPortal() {
         onSignOut={handleSignOut}
         onSwitchPortal={role === 'admin' ? () => setLocation('/admin') : undefined}
         switchPortalLabel={role === 'admin' ? 'Admin Portal' : undefined}
+        onProfileClick={() => setLocation('/tech/profile')}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

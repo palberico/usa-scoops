@@ -7,7 +7,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { LogOut, Menu, Users, LayoutDashboard } from 'lucide-react';
+import { LogOut, Menu, Users, LayoutDashboard, UserCircle } from 'lucide-react';
 import { useState } from 'react';
 
 interface PortalHeaderProps {
@@ -16,6 +16,7 @@ interface PortalHeaderProps {
   onSignOut: () => void;
   onSwitchPortal?: () => void;
   switchPortalLabel?: string;
+  onProfileClick?: () => void;
 }
 
 export function PortalHeader({
@@ -24,6 +25,7 @@ export function PortalHeader({
   onSignOut,
   onSwitchPortal,
   switchPortalLabel,
+  onProfileClick,
 }: PortalHeaderProps) {
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
@@ -38,6 +40,11 @@ export function PortalHeader({
     onSwitchPortal?.();
   };
 
+  const handleProfileClick = () => {
+    setOpen(false);
+    onProfileClick?.();
+  };
+
   // Desktop header with visible buttons
   if (!isMobile) {
     return (
@@ -48,6 +55,12 @@ export function PortalHeader({
               {title}
             </h1>
             <div className="flex items-center gap-4">
+              {onProfileClick && (
+                <Button variant="outline" onClick={onProfileClick} data-testid="button-my-profile">
+                  <UserCircle className="h-4 w-4 mr-2" />
+                  My Profile
+                </Button>
+              )}
               {onSwitchPortal && switchPortalLabel && (
                 <Button variant="outline" onClick={onSwitchPortal} data-testid="button-switch-portal">
                   {switchPortalLabel.includes('Tech') ? (
@@ -88,6 +101,17 @@ export function PortalHeader({
                 <SheetTitle>Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-3 mt-6">
+                {onProfileClick && (
+                  <Button
+                    variant="outline"
+                    onClick={handleProfileClick}
+                    className="w-full justify-start"
+                    data-testid="button-my-profile"
+                  >
+                    <UserCircle className="h-4 w-4 mr-2" />
+                    My Profile
+                  </Button>
+                )}
                 {onSwitchPortal && switchPortalLabel && (
                   <Button
                     variant="outline"
