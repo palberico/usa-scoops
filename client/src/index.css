@@ -36,6 +36,8 @@
   --accent-foreground: 0 0% 10%;
   --destructive: 0 84% 42%;
   --destructive-foreground: 0 0% 98%;
+  --army-green: 82 39% 30%;
+  --army-green-foreground: 0 0% 98%;
   --input: 0 0% 70%;
   --ring: 210 100% 25%;
   --chart-1: 210 100% 25%;
@@ -85,6 +87,10 @@
   /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --army-green-border: hsl(var(--army-green));
+  --army-green-border: hsl(from hsl(var(--army-green)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
 .dark {
@@ -120,6 +126,8 @@
   --accent-foreground: 0 0% 95%;
   --destructive: 0 72% 35%;
   --destructive-foreground: 0 0% 98%;
+  --army-green: 82 45% 40%;
+  --army-green-foreground: 0 0% 98%;
   --input: 0 0% 35%;
   --ring: 210 85% 40%;
   --chart-1: 210 85% 50%;
@@ -163,6 +171,10 @@
   /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Fallback for older browsers */
+  --army-green-border: hsl(var(--army-green));
+  --army-green-border: hsl(from hsl(var(--army-green)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
 @layer base {

@@ -418,7 +418,7 @@ export default function TechnicianPortal() {
                               </Button>
                               <Button
                                 size="icon"
-                                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                className="bg-[hsl(var(--army-green))] text-[hsl(var(--army-green-foreground))] border-[hsl(var(--army-green-border))]"
                                 onClick={() => setDetailsVisit(visit)}
                                 data-testid={`button-my-details-${visit.id}`}
                               >
@@ -511,17 +511,7 @@ export default function TechnicianPortal() {
                             )}
                           </TableCell>
                           <TableCell>
-                            {isAssignedToMe ? (
-                              <Button
-                                size="sm"
-                                className="w-32"
-                                onClick={() => setCompleteModalVisit(visit)}
-                                data-testid={`button-complete-${visit.id}`}
-                              >
-                                <CheckCircle2 className="h-4 w-4 mr-2" />
-                                Complete
-                              </Button>
-                            ) : (
+                            {!isAssignedToMe && (
                               <Button
                                 size="sm"
                                 className="w-32"
