@@ -691,8 +691,8 @@ export default function AdminDashboard() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="visits" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 lg:flex lg:w-auto lg:grid-cols-none gap-0 lg:gap-1">
+        <Tabs defaultValue="visits" className="lg:space-y-4">
+          <TabsList className="grid w-full grid-cols-6 gap-2 mb-6 lg:flex lg:w-auto lg:grid-cols-none lg:gap-1 lg:mb-0">
             <TabsTrigger value="visits" data-testid="tab-visits" className="col-span-2 lg:col-span-1">Visits</TabsTrigger>
             <TabsTrigger value="slots" data-testid="tab-slots" className="col-span-2 lg:col-span-1">Service Slots</TabsTrigger>
             <TabsTrigger value="zips" data-testid="tab-zips" className="col-span-2 lg:col-span-1">Zip Codes</TabsTrigger>
