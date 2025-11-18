@@ -475,6 +475,7 @@ export default function TechnicianPortal() {
                             {isAssignedToMe ? (
                               <Button
                                 size="sm"
+                                className="w-32"
                                 onClick={() => handleMarkCompleted(visit.id)}
                                 disabled={updatingVisit === visit.id}
                                 data-testid={`button-complete-${visit.id}`}
@@ -491,6 +492,7 @@ export default function TechnicianPortal() {
                             ) : (
                               <Button
                                 size="sm"
+                                className="w-32"
                                 variant="destructive"
                                 onClick={() => handleTakeVisit(visit.id)}
                                 disabled={updatingVisit === visit.id}
