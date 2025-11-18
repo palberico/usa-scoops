@@ -514,7 +514,7 @@ export default function TechnicianPortal() {
                             {!isAssignedToMe && (
                               <Button
                                 size="sm"
-                                className="w-32"
+                                className="w-24"
                                 variant="destructive"
                                 onClick={() => handleTakeVisit(visit.id)}
                                 disabled={updatingVisit === visit.id}
