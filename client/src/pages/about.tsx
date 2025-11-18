@@ -2,11 +2,9 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { TechnicianProfile } from '@shared/types';
-import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
 import { useLocation } from 'wouter';
-import logoUrl from '@/../../client/public/logo-full.png';
 
 export default function AboutPage() {
   const [, navigate] = useLocation();
@@ -38,11 +36,11 @@ export default function AboutPage() {
       <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
         <div className="space-y-12">
           <div className="text-center space-y-6">
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-8">
               <img 
-                src={logoUrl} 
+                src="/logo-full.png" 
                 alt="USA Scoops Logo" 
-                className="h-16 lg:h-20 cursor-pointer"
+                className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto cursor-pointer"
                 onClick={() => navigate('/')}
                 data-testid="img-logo"
               />
@@ -84,31 +82,29 @@ export default function AboutPage() {
                 <p className="text-muted-foreground">No team members available yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {profiles.map((profile) => (
-                  <Card
+                  <div
                     key={profile.uid}
-                    className="bg-white dark:bg-white border-0 cursor-pointer no-default-hover-elevate no-default-active-elevate"
+                    className="flex flex-col items-center space-y-4 cursor-pointer"
                     onClick={() => navigate(`/technicians/${profile.uid}`)}
                     data-testid={`card-technician-${profile.uid}`}
                   >
-                    <CardContent className="p-6 flex flex-col items-center space-y-4">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage src={profile.avatar_url} />
-                        <AvatarFallback className="bg-gray-100">
-                          <User className="h-12 w-12 text-gray-400" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="text-center space-y-1">
-                        <h3 className="font-semibold text-lg text-gray-900" data-testid={`text-name-${profile.uid}`}>
-                          {profile.display_name}
-                        </h3>
-                        <p className="text-sm text-gray-600" data-testid={`text-title-${profile.uid}`}>
-                          {profile.title}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={profile.avatar_url} />
+                      <AvatarFallback className="bg-gray-100">
+                        <User className="h-12 w-12 text-gray-400" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-center space-y-1">
+                      <h3 className="font-semibold text-lg" data-testid={`text-name-${profile.uid}`}>
+                        {profile.display_name}
+                      </h3>
+                      <p className="text-sm text-muted-foreground" data-testid={`text-title-${profile.uid}`}>
+                        {profile.title}
+                      </p>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
