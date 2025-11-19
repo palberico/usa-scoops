@@ -119,6 +119,17 @@ export default function Login() {
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
+          {/* Logo - same size as home page */}
+          <div className="flex justify-center mb-6">
+            <div className="inline-block rounded-full bg-white p-1">
+              <img 
+                src="/logo-full.png" 
+                alt="USA Scoops" 
+                className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto"
+                data-testid="logo-image"
+              />
+            </div>
+          </div>
           <CardTitle className="text-2xl" data-testid="heading-login">Sign In</CardTitle>
           <CardDescription>
             Enter your credentials to access your account
