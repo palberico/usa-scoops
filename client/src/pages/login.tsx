@@ -117,7 +117,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md bg-gradient-to-br from-card to-card/80">
         <CardHeader>
           {/* Logo - same size as home page */}
           <div className="flex justify-center mb-6">
