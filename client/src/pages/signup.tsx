@@ -89,7 +89,6 @@ export default function Signup() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
-  const [showPriceQuoteModal, setShowPriceQuoteModal] = useState(false);
   const [pricing, setPricing] = useState(DEFAULT_PRICING);
   
   const [waitlistData, setWaitlistData] = useState({
@@ -298,8 +297,8 @@ export default function Signup() {
         updated_at: serverTimestamp(),
       });
 
-      // Show price quote modal after saving dog info
-      setShowPriceQuoteModal(true);
+      // Move directly to property information step
+      setStep(4);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -309,12 +308,6 @@ export default function Signup() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Handler to continue from price quote modal to property information
-  const handlePriceQuoteConfirm = () => {
-    setShowPriceQuoteModal(false);
-    setStep(4); // Move to property information step
   };
 
   // Step 4: Property Information (address, phone)
@@ -399,49 +392,6 @@ export default function Signup() {
           </Button>
         </DialogContent>
       </Dialog>
-
-      {/* Price Quote Modal (After Dog Info) */}
-      <Dialog open={showPriceQuoteModal} onOpenChange={setShowPriceQuoteModal}>
-        <DialogContent className="sm:max-w-md" data-testid="modal-price-quote">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl">Your Service Quote</DialogTitle>
-            <DialogDescription className="text-center text-base">
-              Based on the number of dogs you have
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-muted-foreground">Number of Dogs</h3>
-              <p className="text-base" data-testid="text-price-quote-dogs">
-                {formData.dog_count} dog{formData.dog_count > 1 ? 's' : ''}
-              </p>
-              {formData.dog_names.filter(name => name.trim() !== '').length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {formData.dog_names.filter(name => name.trim() !== '').join(', ')}
-                </p>
-              )}
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm text-muted-foreground">Service Price</h3>
-              <p className="text-2xl font-bold text-primary" data-testid="text-price-quote-amount">
-                ${calculateQuote(formData.dog_count, true, pricing)}
-              </p>
-              <p className="text-xs text-muted-foreground">Per service</p>
-            </div>
-          </div>
-
-          <Button 
-            onClick={handlePriceQuoteConfirm}
-            className="w-full"
-            data-testid="button-continue-from-quote"
-          >
-            Continue
-          </Button>
-        </DialogContent>
-      </Dialog>
-
 
       {/* Waitlist Modal */}
       <Dialog open={showWaitlistModal} onOpenChange={setShowWaitlistModal}>
