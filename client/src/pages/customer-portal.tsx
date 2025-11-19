@@ -369,7 +369,7 @@ export default function CustomerPortal() {
         });
 
         // If this was a recurring visit, create a REPLACEMENT visit for the original slot
-        // to maintain the 24-week buffer for the customer's recurring subscription
+        // to maintain the 8-visit rolling buffer for the customer's recurring subscription
         if (currentVisit.is_recurring && currentVisit.recurring_group_id && replacementDate) {
           const newVisitRef = doc(collection(db, 'visits'));
           transaction.set(newVisitRef, {
@@ -635,7 +635,7 @@ export default function CustomerPortal() {
                 <CardContent className="overflow-hidden">
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground mb-3">
-                      Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain a 24-week schedule so you're always covered!
+                      Your weekly service is scheduled every {getDayName(nextVisit.visit.recurring_day_of_week || 0)} from {nextVisit.slot.window_start} to {nextVisit.slot.window_end}. We maintain an 8-week rolling schedule so you're always covered!
                     </p>
                   <div className="overflow-x-auto">
                   <Table>
