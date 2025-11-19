@@ -31,7 +31,7 @@ The application uses a client-side Firebase architecture with React for the UI, 
 *   **Role Resolution**: Prioritizes `admin` role and checks `customers` and `technicians` collections.
 *   **Recurring Schedules**: Supports recurring monthly plans and one-time bookings.
     *   **Visit Scheduling**: `calculateNextServiceDate()` computes next service date for recurring slots.
-    *   **24-Week Rolling Buffer**: Creates 24 future visits for recurring services, maintained by auto-replenishment upon visit completion or rescheduling. Visits are linked by `recurring_group_id`.
+    *   **8-Visit Rolling Buffer**: Creates 8 future visits initially for recurring services. When visits are completed, the system automatically replenishes to maintain an 8-visit buffer. This reduces upfront Firestore writes by 67% while still providing ~2 months of visibility. Visits are linked by `recurring_group_id`. The `replenishVisits()` utility function handles auto-replenishment.
     *   **Reschedule Flexibility**: Customers can reschedule visits, which become one-time appointments.
     *   **Slot Accounting**: `booked_count` tracks subscription holders for recurring slots, not individual visit occurrences.
 *   **Technician Profile Data Denormalization**: Technician `name`, `title`, and `avatar_url` are stored directly on visit documents for performance.
