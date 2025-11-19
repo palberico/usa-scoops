@@ -36,11 +36,18 @@ const formatPhoneNumber = (value: string): string => {
 function BookingStep({ 
   zip, 
   dogCount, 
+  pricing,
   onComplete, 
   onCancel 
 }: { 
   zip: string; 
   dogCount: number; 
+  pricing: {
+    recurring_base: number;
+    recurring_additional: number;
+    onetime_base: number;
+    onetime_additional: number;
+  };
   onComplete: () => void; 
   onCancel: () => void;
 }) {
@@ -75,6 +82,7 @@ function BookingStep({
       onComplete={onComplete}
       onCancel={onCancel}
       showPaymentStep={true}
+      pricing={pricing}
     />
   );
 }
@@ -919,6 +927,7 @@ export default function Signup() {
             <BookingStep
               zip={formData.zip}
               dogCount={formData.dog_count}
+              pricing={pricing}
               onComplete={handleBookingComplete}
               onCancel={() => setStep(4)}
             />
