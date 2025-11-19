@@ -23,12 +23,13 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Calendar, CheckCircle2, User, UserPlus, Info, XCircle } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc, addDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Visit, Customer, Slot, Technician } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
 import { PortalHeader } from '@/components/portal-header';
+import { replenishVisits } from '@/lib/visitReplenishment';
 
 interface VisitWithDetails extends Visit {
   customer: Customer;
@@ -234,56 +235,22 @@ export default function TechnicianPortal() {
         updated_at: Timestamp.now(),
       });
 
-      // If this is a recurring visit, maintain the 24-week buffer
-      if (visit.is_recurring && visit.recurring_group_id) {
-        // Count future scheduled visits in this recurring group
-        const futureVisitsQuery = query(
-          collection(db, 'visits'),
-          where('recurring_group_id', '==', visit.recurring_group_id),
-          where('status', '==', 'scheduled')
-        );
-        const futureVisitsSnapshot = await getDocs(futureVisitsQuery);
-        const futureVisits = futureVisitsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Visit));
-        
-        // Sort by scheduled_for to find the latest
-        futureVisits.sort((a, b) => b.scheduled_for.toDate().getTime() - a.scheduled_for.toDate().getTime());
-        
-        const bufferSize = 24;
-        const visitsToCreate = bufferSize - futureVisits.length;
-        
-        if (visitsToCreate > 0 && visit.recurring_day_of_week !== undefined) {
-          // Find the latest scheduled visit date
-          const latestVisitDate = futureVisits.length > 0 
-            ? futureVisits[0].scheduled_for.toDate() 
-            : visit.scheduled_for.toDate();
-          
-          // Create new visits to maintain buffer
-          for (let i = 1; i <= visitsToCreate; i++) {
-            const nextDate = new Date(latestVisitDate);
-            nextDate.setDate(latestVisitDate.getDate() + (i * 7));
-            
-            // Set the time from the recurring window
-            if (visit.recurring_window_start) {
-              const [hours, minutes] = visit.recurring_window_start.split(':').map(Number);
-              nextDate.setHours(hours, minutes, 0, 0);
-            }
-            
-            await addDoc(collection(db, 'visits'), {
-              customer_uid: visit.customer_uid,
-              slot_id: visit.slot_id,
-              scheduled_for: Timestamp.fromDate(nextDate),
-              status: 'scheduled',
-              notes: '',
-              is_recurring: true,
-              recurring_group_id: visit.recurring_group_id,
-              recurring_day_of_week: visit.recurring_day_of_week,
-              recurring_window_start: visit.recurring_window_start,
-              recurring_window_end: visit.recurring_window_end,
-              created_at: Timestamp.now(),
-              updated_at: Timestamp.now(),
-            });
-          }
-        }
+      // If this is a recurring visit, maintain the 8-visit rolling buffer
+      if (
+        visit.is_recurring && 
+        visit.recurring_group_id &&
+        visit.recurring_day_of_week !== undefined &&
+        visit.recurring_window_start &&
+        visit.recurring_window_end
+      ) {
+        await replenishVisits({
+          recurringGroupId: visit.recurring_group_id,
+          customerUid: visit.customer_uid,
+          slotId: visit.slot_id,
+          recurringDayOfWeek: visit.recurring_day_of_week,
+          recurringWindowStart: visit.recurring_window_start,
+          recurringWindowEnd: visit.recurring_window_end,
+        });
       }
 
       toast({
