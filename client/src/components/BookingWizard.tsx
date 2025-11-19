@@ -22,6 +22,12 @@ interface BookingWizardProps {
   onComplete: () => void;
   onCancel?: () => void;
   showPaymentStep?: boolean;
+  pricing?: {
+    recurring_base: number;
+    recurring_additional: number;
+    onetime_base: number;
+    onetime_additional: number;
+  };
 }
 
 export default function BookingWizard({ 
@@ -29,7 +35,8 @@ export default function BookingWizard({
   customerData, 
   onComplete, 
   onCancel,
-  showPaymentStep = true 
+  showPaymentStep = true,
+  pricing 
 }: BookingWizardProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -345,7 +352,7 @@ export default function BookingWizard({
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold">Total per service:</span>
                   <span className="text-2xl font-bold text-primary">
-                    ${calculateQuote(customerData.dog_count)}
+                    ${calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
                   </span>
                 </div>
               </div>
@@ -379,7 +386,7 @@ export default function BookingWizard({
               )} • {selectedSlot.window_start} - {selectedSlot.window_end}
             </p>
             <p className="text-sm text-muted-foreground">
-              {customerData.dog_count} dog{customerData.dog_count > 1 ? 's' : ''} • ${calculateQuote(customerData.dog_count)} per service
+              {customerData.dog_count} dog{customerData.dog_count > 1 ? 's' : ''} • ${calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)} per service
             </p>
           </>
         )}
