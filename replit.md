@@ -16,7 +16,14 @@ The application uses a client-side Firebase architecture with React for the UI, 
 
 ### Feature Specifications
 *   **Landing Page**: Hero section, "How It Works" guide, calls to action.
-*   **6-Step Signup Flow**: Guides users through booking, including zip code validation, account creation (Firebase Auth), dog information entry (with price quote: $15 base + $5 per additional dog), property details, time slot selection (recurring/one-time), and a payment placeholder. Includes waitlist functionality.
+*   **5-Step Signup Flow**: Guides users through booking with streamlined steps:
+    1. Zip code validation (with waitlist for unavailable areas)
+    2. Account creation (Firebase Auth)
+    3. Dog information entry (count and names)
+    4. Property details (address, phone, gate code, notes)
+    5. Booking completion (slot selection, quote review, payment) via integrated BookingWizard component
+    *   **Code Architecture**: Signup flow delegates all booking logic to `BookingWizard` component, eliminating duplicate code and maintaining single source of truth for slot selection, pricing display, and payment processing.
+*   **BookingWizard Component**: Reusable booking component used in both signup flow (step 5) and existing customer rebooking (`/book` route). Handles slot selection, displays quote confirmation modal with pricing details, and processes payment. Creates exactly 8 visits for recurring bookings using `VISIT_BUFFER_SIZE` constant.
 *   **Customer Portal**: Allows viewing/managing visits, canceling/rescheduling, and sending support messages. Displays technician information for upcoming visits.
 *   **Technician Portal**: Enables technicians to view assigned visits, see all scheduled visits for a day (with assignment status and self-assignment option), view completed jobs, and manage their public profile. Mobile-optimized with fixed-height cards and drawer navigation.
 *   **Admin Dashboard**: Provides tools for managing service zip codes, creating time slots, configuring dynamic pricing (base, additional dog rates for recurring/one-time services), assigning technicians to visits, and overseeing all bookings. Includes a 7-day upcoming visit view.
