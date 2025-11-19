@@ -89,6 +89,7 @@ export default function Signup() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showWaitlistModal, setShowWaitlistModal] = useState(false);
   const [showWaitlistForm, setShowWaitlistForm] = useState(false);
+  const [showPriceQuoteModal, setShowPriceQuoteModal] = useState(false);
   const [pricing, setPricing] = useState(DEFAULT_PRICING);
   
   const [waitlistData, setWaitlistData] = useState({
@@ -297,8 +298,8 @@ export default function Signup() {
         updated_at: serverTimestamp(),
       });
 
-      // Move directly to property information step
-      setStep(4);
+      // Show price quote modal
+      setShowPriceQuoteModal(true);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -308,6 +309,12 @@ export default function Signup() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle price quote confirmation
+  const handlePriceQuoteConfirm = () => {
+    setShowPriceQuoteModal(false);
+    setStep(4); // Move to property information
   };
 
   // Step 4: Property Information (address, phone)
@@ -479,6 +486,53 @@ export default function Signup() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Price Quote Modal */}
+      <Dialog open={showPriceQuoteModal} onOpenChange={setShowPriceQuoteModal}>
+        <DialogContent className="sm:max-w-md" data-testid="modal-price-quote">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Sparkles className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <DialogTitle className="text-center text-2xl">Your Price Quote</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              Based on your dog count
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Number of Dogs</p>
+              <p className="font-semibold text-lg">{formData.dog_count}</p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">Base Price (1 dog)</p>
+              <p className="font-semibold">${pricing.recurring_base}</p>
+            </div>
+            {formData.dog_count > 1 && (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">Additional Dogs ({formData.dog_count - 1})</p>
+                <p className="font-semibold">${pricing.recurring_additional} × {formData.dog_count - 1} = ${pricing.recurring_additional * (formData.dog_count - 1)}</p>
+              </div>
+            )}
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold">Total per service:</span>
+                <span className="text-2xl font-bold text-primary" data-testid="text-quote-amount">
+                  ${calculateQuote(formData.dog_count, true, pricing)}
+                </span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground text-center">
+              This is the recurring service rate. One-time service rates may vary.
+            </p>
+          </div>
+          <Button onClick={handlePriceQuoteConfirm} className="w-full" data-testid="button-continue-to-property">
+            Continue to Property Details
+          </Button>
         </DialogContent>
       </Dialog>
 
