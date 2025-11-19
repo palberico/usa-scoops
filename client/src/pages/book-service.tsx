@@ -4,16 +4,18 @@ import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import BookingWizard from '@/components/BookingWizard';
 import type { Customer } from '@shared/types';
+import { DEFAULT_PRICING } from '@shared/types';
 
 export default function BookService() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pricing, setPricing] = useState(DEFAULT_PRICING);
 
   useEffect(() => {
     loadCustomerData();
@@ -26,7 +28,23 @@ export default function BookService() {
     }
 
     try {
-      const customerDoc = await getDoc(doc(db, 'customers', user.uid));
+      // Fetch customer data and pricing in parallel
+      const [customerDoc, pricingSnapshot] = await Promise.all([
+        getDoc(doc(db, 'customers', user.uid)),
+        getDocs(collection(db, 'pricing'))
+      ]);
+
+      // Load pricing from Firestore
+      if (!pricingSnapshot.empty) {
+        const data = pricingSnapshot.docs[0].data();
+        setPricing({
+          recurring_base: data.recurring_base || DEFAULT_PRICING.recurring_base,
+          recurring_additional: data.recurring_additional || DEFAULT_PRICING.recurring_additional,
+          onetime_base: data.onetime_base || DEFAULT_PRICING.onetime_base,
+          onetime_additional: data.onetime_additional || DEFAULT_PRICING.onetime_additional,
+        });
+      }
+
       if (customerDoc.exists()) {
         const customerData = { ...customerDoc.data(), uid: customerDoc.id } as Customer;
         
@@ -106,6 +124,7 @@ export default function BookService() {
                 onComplete={handleComplete}
                 onCancel={handleCancel}
                 showPaymentStep={false}
+                pricing={pricing}
               />
             )}
           </CardContent>
