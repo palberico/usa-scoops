@@ -16,11 +16,16 @@ export interface ReplenishVisitsParams {
 /**
  * Ensures that a recurring visit group maintains an 8-visit rolling buffer.
  * Creates new visits to bring the total future scheduled visits to 8.
+ * Only counts visits scheduled for the future (ignores overdue visits).
  * 
  * @param params - The recurring visit configuration
+ * @param completedVisitDate - Optional: the date of the visit that was just completed (used as fallback if no future visits exist)
  * @returns The number of visits created
  */
-export async function replenishVisits(params: ReplenishVisitsParams): Promise<number> {
+export async function replenishVisits(
+  params: ReplenishVisitsParams,
+  completedVisitDate?: Date
+): Promise<number> {
   const {
     recurringGroupId,
     customerUid,
@@ -30,11 +35,14 @@ export async function replenishVisits(params: ReplenishVisitsParams): Promise<nu
     recurringWindowEnd,
   } = params;
 
-  // Count future scheduled visits in this recurring group
+  const now = Timestamp.now();
+
+  // Count future scheduled visits in this recurring group (exclude past-due visits)
   const futureVisitsQuery = query(
     collection(db, 'visits'),
     where('recurring_group_id', '==', recurringGroupId),
-    where('status', '==', 'scheduled')
+    where('status', '==', 'scheduled'),
+    where('scheduled_for', '>=', now)
   );
   
   const futureVisitsSnapshot = await getDocs(futureVisitsQuery);
@@ -50,9 +58,10 @@ export async function replenishVisits(params: ReplenishVisitsParams): Promise<nu
   }
   
   // Find the latest scheduled visit date
+  // If no future visits exist, use the completed visit date or current date
   const latestVisitDate = futureVisits.length > 0 
     ? futureVisits[0].scheduled_for.toDate() 
-    : new Date(); // If no visits exist, start from now
+    : (completedVisitDate || new Date());
   
   // Create new visits to maintain buffer
   for (let i = 1; i <= visitsToCreate; i++) {

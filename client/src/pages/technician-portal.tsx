@@ -243,14 +243,17 @@ export default function TechnicianPortal() {
         visit.recurring_window_start &&
         visit.recurring_window_end
       ) {
-        await replenishVisits({
-          recurringGroupId: visit.recurring_group_id,
-          customerUid: visit.customer_uid,
-          slotId: visit.slot_id,
-          recurringDayOfWeek: visit.recurring_day_of_week,
-          recurringWindowStart: visit.recurring_window_start,
-          recurringWindowEnd: visit.recurring_window_end,
-        });
+        await replenishVisits(
+          {
+            recurringGroupId: visit.recurring_group_id,
+            customerUid: visit.customer_uid,
+            slotId: visit.slot_id,
+            recurringDayOfWeek: visit.recurring_day_of_week,
+            recurringWindowStart: visit.recurring_window_start,
+            recurringWindowEnd: visit.recurring_window_end,
+          },
+          visit.scheduled_for.toDate() // Pass the completed visit date
+        );
       }
 
       toast({
