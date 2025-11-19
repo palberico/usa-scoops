@@ -11,6 +11,7 @@ import { db } from '@/lib/firebase';
 import { calculateQuote, getDayName, calculateNextServiceDate } from '@shared/types';
 import type { Slot } from '@shared/types';
 import { format, parse } from 'date-fns';
+import { VISIT_BUFFER_SIZE } from '@/lib/visitReplenishment';
 
 interface BookingWizardProps {
   customerId: string;
@@ -153,9 +154,9 @@ export default function BookingWizard({
           throw new Error('Slot is full');
         }
 
-        // For recurring slots, create 24 weeks of visits (6 months)
+        // For recurring slots, create initial buffer of visits (8 weeks)
         // For one-time slots, create 1 visit
-        const visitsToCreate = selectedSlot.is_recurring ? 24 : 1;
+        const visitsToCreate = selectedSlot.is_recurring ? VISIT_BUFFER_SIZE : 1;
         const recurringGroupId = selectedSlot.is_recurring ? crypto.randomUUID() : undefined;
 
         for (let i = 0; i < visitsToCreate; i++) {
