@@ -16,6 +16,7 @@ import TechnicianPortal from "@/pages/technician-portal";
 import TechnicianProfilePage from "@/pages/technician-profile";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AboutPage from "@/pages/about";
+import TermsOfService from "@/pages/terms-of-service";
 import TechnicianProfileView from "@/pages/technician-profile-view";
 import NotFound from "@/pages/not-found";
 
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/terms" component={TermsOfService} />
       <Route path="/technicians/:uid" component={TechnicianProfileView} />
 
       {/* Protected Routes */}

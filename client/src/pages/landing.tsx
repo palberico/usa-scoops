@@ -137,7 +137,7 @@ export default function Landing() {
       <footer className="py-8 bg-card border-t">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-muted-foreground space-y-3">
-            <div>
+            <div className="flex justify-center gap-4">
               <Link href="/about">
                 <Button
                   variant="ghost"
@@ -145,6 +145,15 @@ export default function Landing() {
                   data-testid="link-about-us"
                 >
                   About Us
+                </Button>
+              </Link>
+              <Link href="/terms">
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-primary"
+                  data-testid="link-terms"
+                >
+                  Terms of Service
                 </Button>
               </Link>
             </div>
