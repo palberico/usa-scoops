@@ -4,7 +4,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { TechnicianProfile } from '@shared/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 
 export default function AboutPage() {
   const [, navigate] = useLocation();
@@ -108,6 +108,20 @@ export default function AboutPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Back to Home Button */}
+          <div className="mt-12 pt-8 border-t text-center">
+            <Link href="/">
+              <a>
+                <button
+                  className="text-primary hover:underline text-lg"
+                  data-testid="link-back-home"
+                >
+                  ← Back to Home
+                </button>
+              </a>
+            </Link>
           </div>
         </div>
       </div>
