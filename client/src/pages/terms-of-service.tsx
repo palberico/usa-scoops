@@ -4,7 +4,7 @@ export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-background">
       {/* Logo Header - Clickable to go back to home */}
-      <div className="py-8 border-b">
+      <div className="py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <Link href="/">
             <a className="flex justify-center cursor-pointer" data-testid="link-home">
