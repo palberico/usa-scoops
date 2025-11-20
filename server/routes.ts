@@ -3,13 +3,20 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import Stripe from "stripe";
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin if not already initialized
-if (getApps().length === 0) {
-  initializeApp();
+let db: Firestore | null = null;
+try {
+  if (getApps().length === 0) {
+    initializeApp();
+  }
+  db = getFirestore();
+  console.log('Firebase Admin initialized successfully');
+} catch (error) {
+  console.error('Firebase Admin initialization failed:', error);
+  console.log('Payment validation will be disabled. For production use, configure Firebase Admin credentials.');
 }
-const db = getFirestore();
 
 // Initialize Stripe with secret key from environment
 // Reference: blueprint:javascript_stripe
@@ -41,6 +48,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customerId || !slotId) {
         return res.status(400).json({ 
           error: "Missing required booking information" 
+        });
+      }
+
+      // Check if Firebase Admin is available
+      if (!db) {
+        return res.status(503).json({ 
+          error: "Payment service temporarily unavailable. Please contact support." 
         });
       }
 
