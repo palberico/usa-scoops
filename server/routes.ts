@@ -9,13 +9,20 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 let db: Firestore | null = null;
 try {
   if (getApps().length === 0) {
-    initializeApp();
+    // Require project ID from environment variables
+    const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
+    if (!projectId) {
+      throw new Error('VITE_FIREBASE_PROJECT_ID environment variable is required for Firebase Admin');
+    }
+    initializeApp({
+      projectId: projectId
+    });
   }
   db = getFirestore();
-  console.log('Firebase Admin initialized successfully');
+  console.log('Firebase Admin initialized successfully with project:', process.env.VITE_FIREBASE_PROJECT_ID);
 } catch (error) {
   console.error('Firebase Admin initialization failed:', error);
-  console.log('Payment validation will be disabled. For production use, configure Firebase Admin credentials.');
+  throw new Error('Firebase Admin setup failed. Payment functionality is unavailable.');
 }
 
 // Initialize Stripe with secret key from environment
