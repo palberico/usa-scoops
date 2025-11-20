@@ -9,17 +9,22 @@ import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 let db: Firestore | null = null;
 try {
   if (getApps().length === 0) {
-    // Require project ID from environment variables
-    const projectId = process.env.VITE_FIREBASE_PROJECT_ID;
-    if (!projectId) {
-      throw new Error('VITE_FIREBASE_PROJECT_ID environment variable is required for Firebase Admin');
+    // Use service account credentials from environment
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (!serviceAccount) {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is required for Firebase Admin');
     }
+    
+    // Parse the service account JSON
+    const serviceAccountObj = JSON.parse(serviceAccount);
+    
     initializeApp({
-      projectId: projectId
+      credential: cert(serviceAccountObj)
     });
   }
   db = getFirestore();
-  console.log('Firebase Admin initialized successfully with project:', process.env.VITE_FIREBASE_PROJECT_ID);
+  console.log('Firebase Admin initialized successfully with service account');
 } catch (error) {
   console.error('Firebase Admin initialization failed:', error);
   throw new Error('Firebase Admin setup failed. Payment functionality is unavailable.');
