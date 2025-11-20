@@ -48,14 +48,27 @@ The application uses a client-side Firebase architecture with React for the UI, 
 
 *   **Firebase**: Authentication (Auth), Database (Cloud Firestore), Storage (avatars).
 *   **Firebase Admin SDK**: Server-side Firestore access for secure payment validation (validates customer data, slot availability, and pricing configuration before creating payment intents).
-*   **Stripe**: Payment processing for one-time and recurring payments.
+*   **Stripe**: Payment processing with production-ready webhook-based fulfillment.
     *   **Integration Details**: Custom embedded payment forms using Stripe Elements (stays on usascoops.com domain, no redirects).
-    *   **Security Architecture**: All payment amounts are calculated server-side by fetching customer data (dog count), slot configuration, and pricing from Firestore. The server never trusts client-provided amounts. Before creating payment intents, the server re-validates slot capacity to prevent paying for unavailable slots (returns HTTP 409 if full).
+    *   **Security Architecture**: 
+        *   All payment amounts are calculated server-side by fetching customer data (dog count), slot configuration, and pricing from Firestore. The server never trusts client-provided amounts.
+        *   Before creating payment intents, the server re-validates slot capacity to prevent paying for unavailable slots (returns HTTP 409 if full).
+        *   **Client-side booking creation is completely disabled** - customers cannot create bookings directly in Firestore. All bookings are created exclusively by the webhook handler after verified payment.
+        *   Webhook signature verification using `STRIPE_WEBHOOK_SECRET` ensures requests are authentic.
+        *   Idempotency checks via `payment_tracking` collection prevent duplicate bookings if webhooks retry.
     *   **API Endpoints**:
         *   `/api/create-payment-intent` - Creates one-time payment intents with server-side validation
         *   `/api/create-subscription` - Creates recurring subscriptions (for future use)
-        *   `/api/stripe-webhook` - Webhook endpoint for payment event processing (stub implementation)
-    *   **Payment Flow**: Customer selects slot → Server validates slot availability → Server fetches customer dog count from Firestore → Server calculates amount using Firestore pricing → Stripe payment processed → On success, booking created in Firestore with visit records.
+        *   `/api/stripe-webhook` - Production webhook endpoint with signature verification, processes `payment_intent.succeeded` events and creates bookings server-side
+        *   `/api/booking-status/:paymentIntentId` - Polling endpoint for clients to check if webhook has processed their payment
+    *   **Payment Flow**: 
+        1. Customer selects slot → Server validates slot availability and fetches customer data
+        2. Server creates payment intent with validated amount and metadata
+        3. Customer completes payment via Stripe Elements
+        4. Stripe webhook sends `payment_intent.succeeded` event (verified via signature)
+        5. Server creates booking in Firestore (8 visits for recurring, 1 for one-time)
+        6. Client polls `/api/booking-status` endpoint to detect completion
+        7. Client shows "confirming booking" screen, then redirects to success
     *   **Test Mode**: Currently configured with test API keys for development (pk_test_ and sk_test_ prefixes).
 *   **React**: Frontend library.
 *   **TypeScript**: Type-safe JavaScript.

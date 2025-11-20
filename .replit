@@ -88,3 +88,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx server/index.ts"
+
+[agent]
+integrations = ["javascript_stripe:1.0.0"]

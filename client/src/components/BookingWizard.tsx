@@ -45,9 +45,11 @@ export default function BookingWizard({
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [currentStep, setCurrentStep] = useState<'slots' | 'payment'>('slots');
+  const [currentStep, setCurrentStep] = useState<'slots' | 'payment' | 'confirming'>('slots');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [creatingPayment, setCreatingPayment] = useState(false);
+  const [pollingBookingStatus, setPollingBookingStatus] = useState(false);
 
   useEffect(() => {
     loadAvailableSlots();
@@ -121,144 +123,106 @@ export default function BookingWizard({
   };
 
   const handleConfirmAndPay = async () => {
-    setShowQuoteModal(false);
-    if (showPaymentStep) {
-      setCreatingPayment(true);
-      try {
-        // Create payment intent via backend - server validates amount and fetches dog count
-        const response = await apiRequest('POST', '/api/create-payment-intent', {
-          customerId,
-          slotId: selectedSlot?.id,
-        });
-        
-        const data = await response.json();
-        
-        if (data.error) {
-          if (data.error === "Slot is no longer available") {
-            // Slot was taken between selection and payment - refresh available slots
-            toast({
-              variant: 'destructive',
-              title: 'Slot Unavailable',
-              description: 'This time slot was just booked. Please select another slot.',
-            });
-            setCurrentStep('slots');
-            setSelectedSlot(null);
-            return;
-          }
-          throw new Error(data.error);
-        }
-        
-        setClientSecret(data.clientSecret);
-        setCurrentStep('payment');
-      } catch (error: any) {
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to initialize payment',
-        });
-      } finally {
-        setCreatingPayment(false);
-      }
-    } else {
-      handleCompleteBooking();
-    }
-  };
-
-  const handleCompleteBooking = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    if (!selectedSlot) {
+    // Security: All bookings must go through payment/webhook flow
+    // Direct client-side booking creation is disabled to prevent fraud
+    if (!showPaymentStep) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Please select a time slot',
+        description: 'Payment is required to complete booking',
       });
       return;
     }
 
-    setLoading(true);
+    setShowQuoteModal(false);
+    setCreatingPayment(true);
+    
     try {
-      const slotRef = doc(db, 'slots', selectedSlot.id);
-      const visitRef = collection(db, 'visits');
-
-      await runTransaction(db, async (transaction) => {
-        const slotDoc = await transaction.get(slotRef);
-        if (!slotDoc.exists()) {
-          throw new Error('Slot no longer exists');
-        }
-
-        const slotData = slotDoc.data();
-        if (slotData.booked_count >= slotData.capacity) {
-          throw new Error('Slot is full');
-        }
-
-        // For recurring slots, create initial buffer of visits (8 weeks)
-        // For one-time slots, create 1 visit
-        const visitsToCreate = selectedSlot.is_recurring ? VISIT_BUFFER_SIZE : 1;
-        const recurringGroupId = selectedSlot.is_recurring ? crypto.randomUUID() : undefined;
-
-        for (let i = 0; i < visitsToCreate; i++) {
-          let scheduledDate: Date;
-          
-          if (selectedSlot.is_recurring) {
-            // Calculate the next occurrence for each week
-            const firstDate = calculateNextServiceDate(selectedSlot.day_of_week || 0, selectedSlot.window_start);
-            scheduledDate = new Date(firstDate);
-            scheduledDate.setDate(firstDate.getDate() + (i * 7)); // Add weeks
-          } else {
-            const dateTimeString = `${selectedSlot.date} ${selectedSlot.window_start}`;
-            scheduledDate = parse(dateTimeString, 'yyyy-MM-dd HH:mm', new Date());
-            
-            if (isNaN(scheduledDate.getTime())) {
-              throw new Error(`Invalid slot date/time format: ${dateTimeString}`);
-            }
-          }
-          
-          const visitData: any = {
-            customer_uid: customerId,
-            slot_id: selectedSlot.id,
-            scheduled_for: Timestamp.fromDate(scheduledDate),
-            status: 'scheduled' as const,
-            notes: '',
-            created_at: Timestamp.now(),
-            updated_at: Timestamp.now(),
-          };
-          
-          if (selectedSlot.is_recurring) {
-            visitData.is_recurring = true;
-            visitData.recurring_group_id = recurringGroupId;
-            visitData.recurring_day_of_week = selectedSlot.day_of_week;
-            visitData.recurring_window_start = selectedSlot.window_start;
-            visitData.recurring_window_end = selectedSlot.window_end;
-          } else {
-            visitData.is_recurring = false;
-          }
-
-          const newVisitRef = doc(visitRef);
-          transaction.set(newVisitRef, visitData);
-        }
-
-        transaction.update(slotRef, {
-          booked_count: slotData.booked_count + 1,
-        });
+      // Create payment intent via backend - server validates amount and fetches dog count
+      const response = await apiRequest('POST', '/api/create-payment-intent', {
+        customerId,
+        slotId: selectedSlot?.id,
       });
-
-      toast({
-        title: 'Success!',
-        description: 'Your service has been booked',
-      });
-
-      onComplete();
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        if (data.error === "Slot is no longer available") {
+          // Slot was taken between selection and payment - refresh available slots
+          toast({
+            variant: 'destructive',
+            title: 'Slot Unavailable',
+            description: 'This time slot was just booked. Please select another slot.',
+          });
+          setCurrentStep('slots');
+          setSelectedSlot(null);
+          return;
+        }
+        throw new Error(data.error);
+      }
+      
+      setClientSecret(data.clientSecret);
+      setPaymentIntentId(data.paymentIntentId);
+      setCurrentStep('payment');
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to complete booking',
-      });
+        description: error.message || 'Failed to initialize payment',
+        });
     } finally {
-      setLoading(false);
+      setCreatingPayment(false);
     }
   };
+
+  // Poll for booking confirmation after payment succeeds
+  const pollBookingStatus = async (intentId: string) => {
+    setCurrentStep('confirming');
+    setPollingBookingStatus(true);
+    
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds max
+    const pollInterval = 1000; // Poll every 1 second
+
+    try {
+      while (attempts < maxAttempts) {
+        const response = await fetch(`/api/booking-status/${intentId}`);
+        const data = await response.json();
+
+        if (data.status === 'completed' && data.hasVisits) {
+          // Booking confirmed!
+          toast({
+            title: 'Success!',
+            description: 'Your service has been booked',
+          });
+          setTimeout(() => onComplete(), 500);
+          return;
+        } else if (data.status === 'failed') {
+          throw new Error('Payment verification failed');
+        }
+
+        // Wait before next poll
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        attempts++;
+      }
+
+      // Timeout - booking might still be processing
+      toast({
+        title: 'Booking in Progress',
+        description: 'Your payment was successful. Your booking confirmation will appear shortly.',
+      });
+      setTimeout(() => onComplete(), 1000);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to confirm booking',
+      });
+    } finally {
+      setPollingBookingStatus(false);
+    }
+  };
+
 
   if (currentStep === 'slots') {
     return (
@@ -402,6 +366,21 @@ export default function BookingWizard({
     );
   }
 
+  // Confirming booking step - Poll for webhook confirmation
+  if (currentStep === 'confirming' || pollingBookingStatus) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <CheckCircle2 className="h-16 w-16 text-green-500 animate-pulse" />
+        <div className="text-center space-y-2">
+          <h3 className="text-lg font-semibold">Payment Successful!</h3>
+          <p className="text-muted-foreground">Confirming your booking...</p>
+          <p className="text-sm text-muted-foreground">This will only take a moment</p>
+        </div>
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   // Payment step
   if (!clientSecret || creatingPayment) {
     return (
@@ -437,8 +416,10 @@ export default function BookingWizard({
         amount={calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
         buttonText="Complete Booking"
         onSuccess={async () => {
-          // Payment successful - now create the booking
-          await handleCompleteBooking();
+          // Payment successful - poll for booking confirmation
+          if (paymentIntentId) {
+            await pollBookingStatus(paymentIntentId);
+          }
         }}
         onError={(error) => {
           toast({
