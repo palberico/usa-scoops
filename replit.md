@@ -47,9 +47,20 @@ The application uses a client-side Firebase architecture with React for the UI, 
 ## External Dependencies
 
 *   **Firebase**: Authentication (Auth), Database (Cloud Firestore), Storage (avatars).
+*   **Firebase Admin SDK**: Server-side Firestore access for secure payment validation (validates customer data, slot availability, and pricing configuration before creating payment intents).
+*   **Stripe**: Payment processing for one-time and recurring payments.
+    *   **Integration Details**: Custom embedded payment forms using Stripe Elements (stays on usascoops.com domain, no redirects).
+    *   **Security Architecture**: All payment amounts are calculated server-side by fetching customer data (dog count), slot configuration, and pricing from Firestore. The server never trusts client-provided amounts. Before creating payment intents, the server re-validates slot capacity to prevent paying for unavailable slots (returns HTTP 409 if full).
+    *   **API Endpoints**:
+        *   `/api/create-payment-intent` - Creates one-time payment intents with server-side validation
+        *   `/api/create-subscription` - Creates recurring subscriptions (for future use)
+        *   `/api/stripe-webhook` - Webhook endpoint for payment event processing (stub implementation)
+    *   **Payment Flow**: Customer selects slot → Server validates slot availability → Server fetches customer dog count from Firestore → Server calculates amount using Firestore pricing → Stripe payment processed → On success, booking created in Firestore with visit records.
+    *   **Test Mode**: Currently configured with test API keys for development (pk_test_ and sk_test_ prefixes).
 *   **React**: Frontend library.
 *   **TypeScript**: Type-safe JavaScript.
 *   **Vite**: Build tool.
+*   **Express**: Backend server for API routes.
 *   **Wouter**: Lightweight React router.
 *   **Shadcn UI**: UI component library.
 *   **Tailwind CSS**: Utility-first CSS framework.

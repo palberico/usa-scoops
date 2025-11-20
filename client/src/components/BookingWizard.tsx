@@ -12,6 +12,8 @@ import { calculateQuote, getDayName, calculateNextServiceDate } from '@shared/ty
 import type { Slot } from '@shared/types';
 import { format, parse } from 'date-fns';
 import { VISIT_BUFFER_SIZE } from '@/lib/visitReplenishment';
+import { StripePaymentWrapper } from './StripePaymentWrapper';
+import { apiRequest } from '@/lib/queryClient';
 
 interface BookingWizardProps {
   customerId: string;
@@ -44,14 +46,8 @@ export default function BookingWizard({
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [currentStep, setCurrentStep] = useState<'slots' | 'payment'>('slots');
-  
-  const [paymentData, setPaymentData] = useState({
-    cardholderName: '',
-    cardNumber: '',
-    expiry: '',
-    cvc: '',
-    billingZip: '',
-  });
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [creatingPayment, setCreatingPayment] = useState(false);
 
   useEffect(() => {
     loadAvailableSlots();
@@ -124,10 +120,45 @@ export default function BookingWizard({
     setShowQuoteModal(true);
   };
 
-  const handleConfirmAndPay = () => {
+  const handleConfirmAndPay = async () => {
     setShowQuoteModal(false);
     if (showPaymentStep) {
-      setCurrentStep('payment');
+      setCreatingPayment(true);
+      try {
+        // Create payment intent via backend - server validates amount and fetches dog count
+        const response = await apiRequest('POST', '/api/create-payment-intent', {
+          customerId,
+          slotId: selectedSlot?.id,
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          if (data.error === "Slot is no longer available") {
+            // Slot was taken between selection and payment - refresh available slots
+            toast({
+              variant: 'destructive',
+              title: 'Slot Unavailable',
+              description: 'This time slot was just booked. Please select another slot.',
+            });
+            setCurrentStep('slots');
+            setSelectedSlot(null);
+            return;
+          }
+          throw new Error(data.error);
+        }
+        
+        setClientSecret(data.clientSecret);
+        setCurrentStep('payment');
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to initialize payment',
+        });
+      } finally {
+        setCreatingPayment(false);
+      }
     } else {
       handleCompleteBooking();
     }
@@ -372,9 +403,18 @@ export default function BookingWizard({
   }
 
   // Payment step
+  if (!clientSecret || creatingPayment) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Preparing payment...</p>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleCompleteBooking} className="space-y-4">
-      <div className="bg-muted/50 p-4 rounded-lg space-y-2 mb-4">
+    <div className="space-y-6">
+      <div className="bg-muted/50 p-4 rounded-lg space-y-2">
         <h3 className="font-semibold">Booking Summary</h3>
         {selectedSlot && (
           <>
@@ -392,101 +432,35 @@ export default function BookingWizard({
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="cardholderName">Cardholder Name</Label>
-        <Input
-          id="cardholderName"
-          value={paymentData.cardholderName}
-          onChange={(e) => setPaymentData({ ...paymentData, cardholderName: e.target.value })}
-          placeholder="John Doe"
-          required
-          data-testid="input-cardholder-name"
-        />
-      </div>
+      <StripePaymentWrapper
+        clientSecret={clientSecret}
+        amount={calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
+        buttonText="Complete Booking"
+        onSuccess={async () => {
+          // Payment successful - now create the booking
+          await handleCompleteBooking();
+        }}
+        onError={(error) => {
+          toast({
+            variant: 'destructive',
+            title: 'Payment Failed',
+            description: error,
+          });
+        }}
+      />
 
-      <div className="space-y-2">
-        <Label htmlFor="cardNumber">Card Number</Label>
-        <Input
-          id="cardNumber"
-          value={paymentData.cardNumber}
-          onChange={(e) => setPaymentData({ ...paymentData, cardNumber: e.target.value })}
-          placeholder="1234 5678 9012 3456"
-          required
-          data-testid="input-card-number"
-        />
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="space-y-2 col-span-2">
-          <Label htmlFor="expiry">Expiration</Label>
-          <Input
-            id="expiry"
-            value={paymentData.expiry}
-            onChange={(e) => setPaymentData({ ...paymentData, expiry: e.target.value })}
-            placeholder="MM/YY"
-            required
-            data-testid="input-expiry"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="cvc">CVC</Label>
-          <Input
-            id="cvc"
-            value={paymentData.cvc}
-            onChange={(e) => setPaymentData({ ...paymentData, cvc: e.target.value })}
-            placeholder="123"
-            required
-            data-testid="input-cvc"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="billingZip">Billing ZIP Code</Label>
-        <Input
-          id="billingZip"
-          value={paymentData.billingZip}
-          onChange={(e) => setPaymentData({ ...paymentData, billingZip: e.target.value })}
-          placeholder="12345"
-          required
-          data-testid="input-billing-zip"
-        />
-      </div>
-
-      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
-        <p className="text-sm text-blue-900 dark:text-blue-100">
-          This is a demo payment form. No real payment will be processed.
-        </p>
-      </div>
-
-      <div className="flex gap-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setCurrentStep('slots')}
-          data-testid="button-back-payment"
-        >
-          Back
-        </Button>
-        <Button
-          type="submit"
-          className="flex-1"
-          disabled={loading}
-          data-testid="button-complete-booking"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Complete Booking
-            </>
-          )}
-        </Button>
-      </div>
-    </form>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          setCurrentStep('slots');
+          setClientSecret(null);
+        }}
+        className="w-full"
+        data-testid="button-back-payment"
+      >
+        Back to Slot Selection
+      </Button>
+    </div>
   );
 }
