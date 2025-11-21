@@ -53,6 +53,7 @@ export default function TechnicianPortal() {
   const [gateSecure, setGateSecure] = useState(0);
   const [notCompleteModalVisit, setNotCompleteModalVisit] = useState<VisitWithDetails | null>(null);
   const [notCompleteNotes, setNotCompleteNotes] = useState('');
+  const [notCompleteGateSecure, setNotCompleteGateSecure] = useState(0);
 
   useEffect(() => {
     loadTechnicians();
@@ -826,18 +827,29 @@ export default function TechnicianPortal() {
         if (!open) {
           setNotCompleteModalVisit(null);
           setNotCompleteNotes('');
+          setNotCompleteGateSecure(0);
         }
       }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Mark Visit as Not Complete</DialogTitle>
             <DialogDescription>
-              Please provide a reason why this visit could not be completed
+              Please confirm gate status and provide a reason why this visit could not be completed
             </DialogDescription>
           </DialogHeader>
           
           {notCompleteModalVisit && (
             <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                <Label htmlFor="gate-secure-not-complete" className="cursor-pointer">Gate Secure</Label>
+                <Switch
+                  id="gate-secure-not-complete"
+                  checked={notCompleteGateSecure === 100}
+                  onCheckedChange={(checked) => setNotCompleteGateSecure(checked ? 100 : 0)}
+                  data-testid="switch-gate-secure-not-complete"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="not-complete-notes">Reason (Required)</Label>
                 <Textarea
@@ -852,10 +864,18 @@ export default function TechnicianPortal() {
               
               <Button
                 onClick={async () => {
+                  if (notCompleteGateSecure < 100) {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Gate Status Required',
+                      description: 'Please confirm the gate is secure',
+                    });
+                    return;
+                  }
                   if (!notCompleteNotes.trim()) {
                     toast({
                       variant: 'destructive',
-                      title: 'Notes Required',
+                      title: 'Reason Required',
                       description: 'Please provide a reason for not completing this visit',
                     });
                     return;
@@ -863,8 +883,9 @@ export default function TechnicianPortal() {
                   await handleMarkNotComplete(notCompleteModalVisit.id, notCompleteNotes);
                   setNotCompleteModalVisit(null);
                   setNotCompleteNotes('');
+                  setNotCompleteGateSecure(0);
                 }}
-                disabled={updatingVisit === notCompleteModalVisit.id}
+                disabled={updatingVisit === notCompleteModalVisit.id || notCompleteGateSecure < 100 || !notCompleteNotes.trim()}
                 variant="destructive"
                 className="w-full"
                 data-testid="button-submit-not-complete"
