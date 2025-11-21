@@ -77,6 +77,11 @@ export function StripePaymentForm({
         <PaymentElement 
           options={{
             layout: 'tabs',
+            paymentMethodOrder: ['card'],
+            wallets: {
+              applePay: 'never',
+              googlePay: 'never',
+            },
           }}
         />
       </div>
