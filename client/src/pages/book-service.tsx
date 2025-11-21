@@ -160,7 +160,7 @@ export default function BookService() {
                     serviceType={serviceType}
                     onComplete={handleComplete}
                     onCancel={handleCancel}
-                    showPaymentStep={false}
+                    showPaymentStep={true}
                     pricing={pricing}
                   />
                 )}
