@@ -573,34 +573,44 @@ export default function CustomerPortal() {
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       {nextVisit.visit.is_recurring && (
-                        <Badge variant="secondary" className="mb-1" data-testid="badge-recurring">
+                        <Badge 
+                          variant={customer?.status === 'paused' ? 'destructive' : 'secondary'} 
+                          className={customer?.status === 'paused' ? 'mb-1 text-base px-3 py-2' : 'mb-1'}
+                          data-testid="badge-recurring"
+                        >
                           {customer?.status === 'paused' ? 'Service Paused' : 'Recurring Monthly Plan'}
                         </Badge>
                       )}
-                      <p className="font-semibold text-lg" data-testid="text-visit-date">
-                        Next Service: {format(nextVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}
-                      </p>
-                      <p className="text-muted-foreground flex items-center gap-1.5" data-testid="text-visit-time">
-                        <Clock className="h-4 w-4" />
-                        {nextVisit.slot.window_start} - {nextVisit.slot.window_end}
-                      </p>
+                      {customer?.status !== 'paused' && (
+                        <>
+                          <p className="font-semibold text-lg" data-testid="text-visit-date">
+                            Next Service: {format(nextVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}
+                          </p>
+                          <p className="text-muted-foreground flex items-center gap-1.5" data-testid="text-visit-time">
+                            <Clock className="h-4 w-4" />
+                            {nextVisit.slot.window_start} - {nextVisit.slot.window_end}
+                          </p>
+                        </>
+                      )}
                     </div>
-                    {getStatusBadge(nextVisit.visit.status)}
+                    {customer?.status !== 'paused' && getStatusBadge(nextVisit.visit.status)}
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 mt-0.5" />
-                      <span data-testid="text-visit-address">
-                        {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
-                      </span>
+                  {customer?.status !== 'paused' && (
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 mt-0.5" />
+                        <span data-testid="text-visit-address">
+                          {customer?.address.street}, {customer?.address.city}, {customer?.address.state}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground" data-testid="text-technician">
+                        <UserCircle2 className="h-4 w-4 mt-0.5" />
+                        <span>
+                          Your yard will be scooped by: <span className="font-medium">{technicianName || 'Pending assignment'}</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-start gap-2 text-sm text-muted-foreground" data-testid="text-technician">
-                      <UserCircle2 className="h-4 w-4 mt-0.5" />
-                      <span>
-                        Your yard will be scooped by: <span className="font-medium">{technicianName || 'Pending assignment'}</span>
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Action Buttons - Temporarily hidden, keeping logic for potential future use */}
                   {/* <div className="flex gap-3 pt-2">
