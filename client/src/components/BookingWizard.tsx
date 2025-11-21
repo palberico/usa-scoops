@@ -22,6 +22,7 @@ interface BookingWizardProps {
     zip: string;
     dog_count: number;
   };
+  serviceType?: 'recurring' | 'onetime';
   onComplete: () => void;
   onCancel?: () => void;
   showPaymentStep?: boolean;
@@ -36,6 +37,7 @@ interface BookingWizardProps {
 export default function BookingWizard({ 
   customerId, 
   customerData, 
+  serviceType = 'recurring',
   onComplete, 
   onCancel,
   showPaymentStep = true,
@@ -55,7 +57,7 @@ export default function BookingWizard({
 
   useEffect(() => {
     loadAvailableSlots();
-  }, [customerData.zip]);
+  }, [customerData.zip, serviceType]);
 
   const loadAvailableSlots = async () => {
     setLoading(true);
@@ -73,6 +75,12 @@ export default function BookingWizard({
       
       slotsSnapshot.forEach((slotDoc) => {
         const slot = { ...slotDoc.data(), id: slotDoc.id } as Slot;
+        
+        // Filter slots based on service type
+        const isRecurringServiceSelected = serviceType === 'recurring';
+        if (slot.is_recurring !== isRecurringServiceSelected) {
+          return; // Skip slots that don't match the selected service type
+        }
         
         let shouldInclude = false;
         if (slot.is_recurring) {
@@ -359,7 +367,7 @@ export default function BookingWizard({
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold">Total per service:</span>
                   <span className="text-2xl font-bold text-primary">
-                    ${calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
+                    ${calculateQuote(customerData.dog_count, serviceType === 'recurring', pricing)}
                   </span>
                 </div>
               </div>
@@ -417,7 +425,7 @@ export default function BookingWizard({
               )} • {selectedSlot.window_start} - {selectedSlot.window_end}
             </p>
             <p className="text-sm text-muted-foreground">
-              {customerData.dog_count} dog{customerData.dog_count > 1 ? 's' : ''} • ${calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)} per service
+              {customerData.dog_count} dog{customerData.dog_count > 1 ? 's' : ''} • ${calculateQuote(customerData.dog_count, serviceType === 'recurring', pricing)} per service
             </p>
           </>
         )}
@@ -425,7 +433,7 @@ export default function BookingWizard({
 
       <StripePaymentWrapper
         clientSecret={clientSecret}
-        amount={calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
+        amount={calculateQuote(customerData.dog_count, serviceType === 'recurring', pricing)}
         buttonText="Complete Booking"
         tosAgreed={tosAgreed}
         onSuccess={async () => {

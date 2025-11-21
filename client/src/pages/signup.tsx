@@ -37,6 +37,7 @@ function BookingStep({
   zip, 
   dogCount, 
   pricing,
+  serviceType,
   onComplete, 
   onCancel 
 }: { 
@@ -48,6 +49,7 @@ function BookingStep({
     onetime_base: number;
     onetime_additional: number;
   };
+  serviceType: 'recurring' | 'onetime';
   onComplete: () => void; 
   onCancel: () => void;
 }) {
@@ -79,6 +81,7 @@ function BookingStep({
         zip,
         dog_count: dogCount,
       }}
+      serviceType={serviceType}
       onComplete={onComplete}
       onCancel={onCancel}
       showPaymentStep={true}
@@ -531,12 +534,12 @@ export default function Signup() {
               <div className="flex items-center justify-between">
                 <span className="text-lg font-semibold">Total per service:</span>
                 <span className="text-2xl font-bold text-primary" data-testid="text-quote-amount">
-                  ${calculateQuote(formData.dog_count, true, pricing)}
+                  ${calculateQuote(formData.dog_count, formData.service_type === 'recurring', pricing)}
                 </span>
               </div>
             </div>
             <p className="text-sm text-muted-foreground text-center">
-              This is the recurring service rate. One-time service rates may vary.
+              This is the {formData.service_type === 'recurring' ? 'recurring' : 'one-time'} service rate.
             </p>
           </div>
           <Button onClick={handlePriceQuoteConfirm} className="w-full" data-testid="button-continue-to-property">
@@ -962,6 +965,7 @@ export default function Signup() {
               zip={formData.zip}
               dogCount={formData.dog_count}
               pricing={pricing}
+              serviceType={formData.service_type}
               onComplete={handleBookingComplete}
               onCancel={() => setStep(4)}
             />
