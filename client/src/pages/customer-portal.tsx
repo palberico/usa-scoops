@@ -438,7 +438,7 @@ export default function CustomerPortal() {
       not_complete: 'Not Complete',
     };
     
-    // Special styling for completed (green) and not_complete (red)
+    // Special styling for completed (green)
     if (status === 'completed') {
       return (
         <Badge className="bg-green-600 hover:bg-green-700 text-white" data-testid={`badge-${status}`}>
@@ -446,12 +446,20 @@ export default function CustomerPortal() {
         </Badge>
       );
     }
+
+    // Special styling for not_complete (red circle X)
+    if (status === 'not_complete') {
+      return (
+        <div className="text-red-600 dark:text-red-400" data-testid={`badge-${status}`}>
+          <XCircle className="h-5 w-5" />
+        </div>
+      );
+    }
     
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
       scheduled: 'default',
       canceled: 'destructive',
       skipped: 'destructive',
-      not_complete: 'destructive',
     };
     
     return <Badge variant={variants[status] || 'default'} data-testid={`badge-${status}`}>{labels[status] || status}</Badge>;
