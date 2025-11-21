@@ -16,6 +16,7 @@ export default function BookService() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [pricing, setPricing] = useState(DEFAULT_PRICING);
+  const [serviceType, setServiceType] = useState<'recurring' | 'onetime' | null>(null);
 
   useEffect(() => {
     loadCustomerData();
@@ -110,22 +111,60 @@ export default function BookService() {
               Book a Service
             </CardTitle>
             <CardDescription>
-              Select a time slot for your pet waste removal service
+              {serviceType ? 'Select a time slot for your pet waste removal service' : 'Choose your service type'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {user && (
-              <BookingWizard
-                customerId={user.uid}
-                customerData={{
-                  zip: customer.address.zip,
-                  dog_count: customer.dog_count,
-                }}
-                onComplete={handleComplete}
-                onCancel={handleCancel}
-                showPaymentStep={false}
-                pricing={pricing}
-              />
+            {!serviceType ? (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div className="text-sm font-medium text-foreground">Service Type</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setServiceType('recurring')}
+                      className="p-4 rounded-lg border-2 border-border hover-elevate transition-all"
+                      data-testid="button-service-recurring"
+                    >
+                      <div className="font-semibold text-left">Recurring</div>
+                      <div className="text-sm text-muted-foreground text-left">Monthly service</div>
+                    </button>
+                    <button
+                      onClick={() => setServiceType('onetime')}
+                      className="p-4 rounded-lg border-2 border-border hover-elevate transition-all"
+                      data-testid="button-service-onetime"
+                    >
+                      <div className="font-semibold text-left">One-Time</div>
+                      <div className="text-sm text-muted-foreground text-left">Single visit</div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  onClick={() => setServiceType(null)}
+                  className="mb-4"
+                  data-testid="button-change-service-type"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Change Service Type
+                </Button>
+                {user && (
+                  <BookingWizard
+                    customerId={user.uid}
+                    customerData={{
+                      zip: customer.address.zip,
+                      dog_count: customer.dog_count,
+                    }}
+                    serviceType={serviceType}
+                    onComplete={handleComplete}
+                    onCancel={handleCancel}
+                    showPaymentStep={false}
+                    pricing={pricing}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>
