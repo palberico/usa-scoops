@@ -1177,12 +1177,6 @@ export default function CustomerPortal() {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="font-semibold text-sm text-muted-foreground">Completed</h3>
-                    <p className="text-lg" data-testid="modal-visit-completed">
-                      {selectedPastVisit.visit.updated_at ? format(selectedPastVisit.visit.updated_at.toDate(), 'h:mm a') : '-'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
                     <h3 className="font-semibold text-sm text-muted-foreground">Status</h3>
                     <div data-testid="modal-visit-status">
                       {selectedPastVisit.visit.status === 'completed' ? (
@@ -1201,6 +1195,12 @@ export default function CustomerPortal() {
                       <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
                       <span>Closed</span>
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Completed</h3>
+                    <p className="text-lg" data-testid="modal-visit-completed">
+                      {selectedPastVisit.visit.updated_at ? format(selectedPastVisit.visit.updated_at.toDate(), 'h:mm a') : '-'}
+                    </p>
                   </div>
                 </div>
 
