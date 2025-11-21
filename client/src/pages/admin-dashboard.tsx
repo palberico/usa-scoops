@@ -804,21 +804,20 @@ export default function AdminDashboard() {
             <TabsTrigger value="visits" data-testid="tab-visits" className="col-span-2 lg:col-span-1">Visits</TabsTrigger>
             <TabsTrigger value="slots" data-testid="tab-slots" className="col-span-2 lg:col-span-1">Service Slots</TabsTrigger>
             <TabsTrigger value="zips" data-testid="tab-zips" className="col-span-2 lg:col-span-1">Zip Codes</TabsTrigger>
-            <TabsTrigger value="pricing" data-testid="tab-pricing" className="col-span-3 lg:col-span-1">Pricing</TabsTrigger>
-            <TabsTrigger value="messages" data-testid="tab-messages" className="relative col-span-3 lg:col-span-1">
-              <Mail className="h-4 w-4 mr-2" />
+            <TabsTrigger value="pricing" data-testid="tab-pricing" className="col-span-2 lg:col-span-1">Pricing</TabsTrigger>
+            <TabsTrigger value="paused" data-testid="tab-paused" className="relative col-span-2 lg:col-span-1">
+              Paused
+              {pausedCustomers.length > 0 && (
+                <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
+                  {pausedCustomers.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="messages" data-testid="tab-messages" className="relative col-span-2 lg:col-span-1">
               Messages
               {messages.filter(m => m.status === 'open').length > 0 && (
                 <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
                   {messages.filter(m => m.status === 'open').length}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="paused" data-testid="tab-paused" className="relative col-span-3 lg:col-span-1">
-              Paused
-              {pausedCustomers.length > 0 && (
-                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
-                  {pausedCustomers.length}
                 </Badge>
               )}
             </TabsTrigger>
