@@ -764,6 +764,25 @@ export default function AdminDashboard() {
     setDeleteDialog({ open: false, type: '', id: '' });
   };
 
+  const handleResumeService = async (customerId: string) => {
+    try {
+      await updateDoc(doc(db, 'customers', customerId), {
+        status: 'active',
+      });
+      toast({
+        title: 'Success',
+        description: 'Customer service resumed',
+      });
+      loadPausedCustomers();
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to resume service',
+      });
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     setLocation('/');
@@ -795,7 +814,66 @@ export default function AdminDashboard() {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="paused" data-testid="tab-paused" className="relative col-span-3 lg:col-span-1">
+              Paused
+              {pausedCustomers.length > 0 && (
+                <Badge variant="secondary" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
+                  {pausedCustomers.length}
+                </Badge>
+              )}
+            </TabsTrigger>
           </TabsList>
+
+          {/* Paused Customers Tab */}
+          <TabsContent value="paused" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Paused Customers</CardTitle>
+                <CardDescription>Customers who have temporarily paused their recurring service</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pausedCustomers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">No paused customers</p>
+                ) : (
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[150px]">Name</TableHead>
+                          <TableHead className="min-w-[150px]">Email</TableHead>
+                          <TableHead className="min-w-[120px]">Phone</TableHead>
+                          <TableHead className="min-w-[120px]">Status</TableHead>
+                          <TableHead className="min-w-[120px]">Action</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pausedCustomers.map((customer) => (
+                          <TableRow key={customer.uid} data-testid={`row-paused-customer-${customer.uid}`}>
+                            <TableCell className="font-medium">{customer.name}</TableCell>
+                            <TableCell>{customer.email}</TableCell>
+                            <TableCell>{customer.phone}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">Paused</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleResumeService(customer.uid)}
+                                data-testid={`button-resume-${customer.uid}`}
+                              >
+                                Resume
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Zip Codes Tab */}
           <TabsContent value="zips" className="space-y-4">
