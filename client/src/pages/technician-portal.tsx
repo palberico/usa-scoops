@@ -556,10 +556,10 @@ export default function TechnicianPortal() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Completed Jobs
+                Job Summary
               </CardTitle>
               <CardDescription>
-                Jobs completed on {format(new Date(selectedDate), 'MMMM d, yyyy')}
+                Jobs for {format(new Date(selectedDate), 'MMMM d, yyyy')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -567,28 +567,30 @@ export default function TechnicianPortal() {
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : visits.filter(v => v.status === 'completed').length === 0 ? (
+              ) : visits.filter(v => v.status === 'completed' || v.status === 'not_complete').length === 0 ? (
                 <p className="text-muted-foreground text-center py-8" data-testid="text-no-completed">
-                  No completed jobs for this date
+                  No completed or incomplete jobs for this date
                 </p>
               ) : (
                 <>
-                  <div className="mb-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
+                  <div className="mb-4 grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
                       <div>
                         <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                          Total Completed
+                          Completed
                         </p>
                         <p className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-total-completed">
                           {visits.filter(v => v.status === 'completed').length}
                         </p>
                       </div>
+                    </div>
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
                       <div>
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">
-                          Total Dogs Serviced
+                        <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                          Incomplete
                         </p>
-                        <p className="text-2xl font-bold text-green-700 dark:text-green-400" data-testid="text-total-dogs">
-                          {visits.filter(v => v.status === 'completed').reduce((sum, v) => sum + v.customer.dog_count, 0)}
+                        <p className="text-2xl font-bold text-red-700 dark:text-red-400" data-testid="text-total-incomplete">
+                          {visits.filter(v => v.status === 'not_complete').length}
                         </p>
                       </div>
                     </div>
@@ -605,7 +607,7 @@ export default function TechnicianPortal() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {visits.filter(v => v.status === 'completed').map((visit) => {
+                      {visits.filter(v => v.status === 'completed' || v.status === 'not_complete').map((visit) => {
                         const windowStart = visit.recurring_window_start || visit.slot.window_start;
                         const windowEnd = visit.recurring_window_end || visit.slot.window_end;
                         
@@ -627,10 +629,17 @@ export default function TechnicianPortal() {
                             </TableCell>
                             <TableCell>{visit.customer.dog_count}</TableCell>
                             <TableCell>
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                <CheckCircle2 className="h-3 w-3 mr-1" />
-                                Completed
-                              </Badge>
+                              {visit.status === 'completed' ? (
+                                <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  Completed
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                                  <XCircle className="h-3 w-3 mr-1" />
+                                  Not Complete
+                                </Badge>
+                              )}
                             </TableCell>
                           </TableRow>
                         );
