@@ -12,6 +12,7 @@ interface StripePaymentFormProps {
   onError?: (error: string) => void;
   buttonText?: string;
   amount?: number;
+  tosAgreed?: boolean;
 }
 
 export function StripePaymentForm({
@@ -19,6 +20,7 @@ export function StripePaymentForm({
   onError,
   buttonText = "Pay Now",
   amount,
+  tosAgreed = true,
 }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -97,7 +99,7 @@ export function StripePaymentForm({
 
       <Button
         type="submit"
-        disabled={!stripe || isProcessing}
+        disabled={!stripe || isProcessing || !tosAgreed}
         className="w-full"
         size="lg"
         data-testid="button-submit-payment"

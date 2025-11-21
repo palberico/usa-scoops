@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, CheckCircle2, Sparkles } from 'lucide-react';
 import { collection, query, where, getDocs, doc, runTransaction, Timestamp } from 'firebase/firestore';
@@ -50,6 +51,7 @@ export default function BookingWizard({
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
   const [creatingPayment, setCreatingPayment] = useState(false);
   const [pollingBookingStatus, setPollingBookingStatus] = useState(false);
+  const [tosAgreed, setTosAgreed] = useState(false);
 
   useEffect(() => {
     loadAvailableSlots();
@@ -415,6 +417,7 @@ export default function BookingWizard({
         clientSecret={clientSecret}
         amount={calculateQuote(customerData.dog_count, selectedSlot?.is_recurring ?? true, pricing)}
         buttonText="Complete Booking"
+        tosAgreed={tosAgreed}
         onSuccess={async () => {
           // Payment successful - poll for booking confirmation
           if (paymentIntentId) {
@@ -429,6 +432,21 @@ export default function BookingWizard({
           });
         }}
       />
+
+      <div className="flex items-start space-x-2">
+        <Checkbox
+          id="tos-agree"
+          checked={tosAgreed}
+          onCheckedChange={(checked) => setTosAgreed(checked as boolean)}
+          data-testid="checkbox-tos-agree"
+        />
+        <Label htmlFor="tos-agree" className="text-sm font-normal cursor-pointer leading-relaxed">
+          I agree to the{' '}
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
+            Terms of Service
+          </a>
+        </Label>
+      </div>
 
       <Button
         type="button"

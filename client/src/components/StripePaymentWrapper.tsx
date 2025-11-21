@@ -16,6 +16,7 @@ interface StripePaymentWrapperProps {
   onError?: (error: string) => void;
   amount?: number;
   buttonText?: string;
+  tosAgreed?: boolean;
 }
 
 export function StripePaymentWrapper({
@@ -24,6 +25,7 @@ export function StripePaymentWrapper({
   onError,
   amount,
   buttonText,
+  tosAgreed,
 }: StripePaymentWrapperProps) {
   const [options, setOptions] = useState<StripeElementsOptions | null>(null);
 
@@ -62,6 +64,7 @@ export function StripePaymentWrapper({
         onError={onError}
         amount={amount}
         buttonText={buttonText}
+        tosAgreed={tosAgreed}
       />
     </Elements>
   );
