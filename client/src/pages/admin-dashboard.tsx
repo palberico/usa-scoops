@@ -95,6 +95,9 @@ export default function AdminDashboard() {
   const [customersMap, setCustomersMap] = useState<Record<string, Customer>>({});
   const [messagesLoading, setMessagesLoading] = useState(false);
   
+  // Paused Customers
+  const [pausedCustomers, setPausedCustomers] = useState<Customer[]>([]);
+  
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string }>({
     open: false,
@@ -111,6 +114,7 @@ export default function AdminDashboard() {
     loadPricing();
     loadMessages();
     loadCustomers();
+    loadPausedCustomers();
   }, []);
 
   useEffect(() => {
@@ -705,6 +709,21 @@ export default function AdminDashboard() {
       setCustomersMap(map);
     } catch (error: any) {
       console.error('Error loading customers:', error);
+    }
+  };
+
+  const loadPausedCustomers = async () => {
+    try {
+      const customersRef = collection(db, 'customers');
+      const q = query(customersRef, where('status', '==', 'paused'));
+      const snapshot = await getDocs(q);
+      const paused: Customer[] = [];
+      snapshot.forEach((doc) => {
+        paused.push({ ...doc.data(), uid: doc.id } as Customer);
+      });
+      setPausedCustomers(paused.sort((a, b) => a.name.localeCompare(b.name)));
+    } catch (error: any) {
+      console.error('Error loading paused customers:', error);
     }
   };
 

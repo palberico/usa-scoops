@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User, PawPrint, CheckCircle2, MessageCircle } from 'lucide-react';
 import {
