@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ export default function TechnicianPortal() {
   const [detailsVisit, setDetailsVisit] = useState<VisitWithDetails | null>(null);
   const [completeModalVisit, setCompleteModalVisit] = useState<VisitWithDetails | null>(null);
   const [completeNotes, setCompleteNotes] = useState('');
+  const [gateSecure, setGateSecure] = useState(0);
   const [notCompleteModalVisit, setNotCompleteModalVisit] = useState<VisitWithDetails | null>(null);
   const [notCompleteNotes, setNotCompleteNotes] = useState('');
 
@@ -747,6 +749,7 @@ export default function TechnicianPortal() {
         if (!open) {
           setCompleteModalVisit(null);
           setCompleteNotes('');
+          setGateSecure(0);
         }
       }}>
         <DialogContent className="max-w-md">
@@ -770,14 +773,35 @@ export default function TechnicianPortal() {
                   data-testid="textarea-complete-notes"
                 />
               </div>
+
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="gate-secure">Gate Secure</Label>
+                  <span className="text-sm font-semibold text-primary">{gateSecure}%</span>
+                </div>
+                <Slider
+                  id="gate-secure"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={[gateSecure]}
+                  onValueChange={(value) => setGateSecure(value[0])}
+                  className="w-full"
+                  data-testid="slider-gate-secure"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {gateSecure === 100 ? 'Gate secured ✓' : 'Slide to confirm gate is secure'}
+                </p>
+              </div>
               
               <Button
                 onClick={async () => {
                   await handleMarkCompleted(completeModalVisit.id, completeNotes);
                   setCompleteModalVisit(null);
                   setCompleteNotes('');
+                  setGateSecure(0);
                 }}
-                disabled={updatingVisit === completeModalVisit.id}
+                disabled={updatingVisit === completeModalVisit.id || gateSecure < 100}
                 className="w-full"
                 data-testid="button-submit-complete"
               >
