@@ -3,6 +3,13 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { TechnicianProfile } from '@shared/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { User } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
 
@@ -10,6 +17,7 @@ export default function AboutPage() {
   const [, navigate] = useLocation();
   const [profiles, setProfiles] = useState<TechnicianProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<TechnicianProfile | null>(null);
 
   useEffect(() => {
     loadProfiles();
@@ -86,8 +94,8 @@ export default function AboutPage() {
                 {profiles.map((profile) => (
                   <div
                     key={profile.uid}
-                    className="flex flex-col items-center space-y-4 cursor-pointer"
-                    onClick={() => navigate(`/technicians/${profile.uid}`)}
+                    className="flex flex-col items-center space-y-4 cursor-pointer hover-elevate active-elevate-2"
+                    onClick={() => setSelectedProfile(profile)}
                     data-testid={`card-technician-${profile.uid}`}
                   >
                     <Avatar className="h-24 w-24">
@@ -125,6 +133,46 @@ export default function AboutPage() {
           </div>
         </div>
       </div>
+
+      {/* Technician Profile Modal */}
+      <Dialog open={!!selectedProfile} onOpenChange={(open) => !open && setSelectedProfile(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedProfile && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Meet {selectedProfile.display_name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Avatar className="h-32 w-32">
+                    <AvatarImage src={selectedProfile.avatar_url} />
+                    <AvatarFallback className="bg-gray-100">
+                      <User className="h-16 w-16 text-gray-400" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-2xl font-bold" data-testid="modal-technician-name">
+                      {selectedProfile.display_name}
+                    </h2>
+                    <p className="text-lg text-primary" data-testid="modal-technician-title">
+                      {selectedProfile.title}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedProfile.bio && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">About</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap" data-testid="modal-technician-bio">
+                      {selectedProfile.bio}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

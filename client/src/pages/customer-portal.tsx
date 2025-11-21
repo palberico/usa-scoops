@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/sheet';
 import { collection, query, where, getDocs, addDoc, doc, getDoc, orderBy, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Visit, Slot, Customer, Technician } from '@shared/types';
+import type { Visit, Slot, Customer, Technician, TechnicianProfile } from '@shared/types';
 import { getDayName, calculateNextServiceDate } from '@shared/types';
 import { format } from 'date-fns';
 import { useLocation } from 'wouter';
@@ -61,6 +61,7 @@ export default function CustomerPortal() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [technicianName, setTechnicianName] = useState<string | null>(null);
   const [showVisitDetailDialog, setShowVisitDetailDialog] = useState(false);
+  const [selectedTechnicianProfile, setSelectedTechnicianProfile] = useState<TechnicianProfile | null>(null);
 
   useEffect(() => {
     loadData();
@@ -1010,9 +1011,20 @@ export default function CustomerPortal() {
                     <div className="flex items-center gap-3">
                       <Avatar 
                         className="h-12 w-12 cursor-pointer hover-elevate active-elevate-2 transition-all"
-                        onClick={() => {
-                          setShowVisitDetailDialog(false);
-                          setLocation(`/technicians/${nextVisit.visit.technician_uid}`);
+                        onClick={async () => {
+                          if (nextVisit.visit.technician_uid) {
+                            try {
+                              const profileDoc = await getDoc(doc(db, 'technician_profiles', nextVisit.visit.technician_uid));
+                              if (profileDoc.exists()) {
+                                setSelectedTechnicianProfile({
+                                  ...profileDoc.data(),
+                                  uid: profileDoc.id,
+                                } as TechnicianProfile);
+                              }
+                            } catch (error) {
+                              console.error('Error loading technician profile:', error);
+                            }
+                          }
                         }}
                         data-testid="avatar-technician"
                       >
@@ -1074,6 +1086,46 @@ export default function CustomerPortal() {
                 </Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Technician Profile Modal */}
+      <Dialog open={!!selectedTechnicianProfile} onOpenChange={(open) => !open && setSelectedTechnicianProfile(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedTechnicianProfile && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Meet {selectedTechnicianProfile.display_name}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <Avatar className="h-32 w-32">
+                    <AvatarImage src={selectedTechnicianProfile.avatar_url} />
+                    <AvatarFallback className="bg-gray-100">
+                      <User className="h-16 w-16 text-gray-400" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="text-2xl font-bold" data-testid="modal-technician-name">
+                      {selectedTechnicianProfile.display_name}
+                    </h2>
+                    <p className="text-lg text-primary" data-testid="modal-technician-title">
+                      {selectedTechnicianProfile.title}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedTechnicianProfile.bio && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">About</h3>
+                    <p className="text-muted-foreground whitespace-pre-wrap" data-testid="modal-technician-bio">
+                      {selectedTechnicianProfile.bio}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
