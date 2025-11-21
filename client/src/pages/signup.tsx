@@ -522,12 +522,12 @@ export default function Signup() {
             </div>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Base Price (1 dog)</p>
-              <p className="font-semibold">${pricing.recurring_base}</p>
+              <p className="font-semibold">${formData.service_type === 'recurring' ? pricing.recurring_base : pricing.onetime_base}</p>
             </div>
             {formData.dog_count > 1 && (
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">Additional Dogs ({formData.dog_count - 1})</p>
-                <p className="font-semibold">${pricing.recurring_additional} × {formData.dog_count - 1} = ${pricing.recurring_additional * (formData.dog_count - 1)}</p>
+                <p className="font-semibold">${formData.service_type === 'recurring' ? pricing.recurring_additional : pricing.onetime_additional} × {formData.dog_count - 1} = ${(formData.service_type === 'recurring' ? pricing.recurring_additional : pricing.onetime_additional) * (formData.dog_count - 1)}</p>
               </div>
             )}
             <div className="border-t pt-4">
