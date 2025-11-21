@@ -121,14 +121,20 @@ export default function Login() {
         <CardHeader>
           {/* Logo - same size as home page */}
           <div className="flex justify-center mb-6">
-            <div className="inline-block rounded-full bg-white p-1">
+            <button
+              type="button"
+              onClick={() => setLocation('/')}
+              className="inline-block rounded-full bg-white p-1 cursor-pointer hover-elevate"
+              aria-label="Return to home"
+              data-testid="button-logo"
+            >
               <img 
                 src="/logo-full.png" 
                 alt="USA Scoops" 
                 className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto"
                 data-testid="logo-image"
               />
-            </div>
+            </button>
           </div>
           <CardTitle className="text-2xl" data-testid="heading-login">Sign In</CardTitle>
           <CardDescription>
