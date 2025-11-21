@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User, PawPrint } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -1113,6 +1113,12 @@ export default function CustomerPortal() {
                     <p className="text-lg text-primary" data-testid="modal-technician-title">
                       {selectedTechnicianProfile.title}
                     </p>
+                    {selectedTechnicianProfile.owns_dogs && (
+                      <Badge variant="secondary" className="mt-2" data-testid="badge-owns-dogs">
+                        <PawPrint className="h-3 w-3 mr-1" />
+                        Dog Owner
+                      </Badge>
+                    )}
                   </div>
                 </div>
 

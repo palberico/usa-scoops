@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { TechnicianProfile } from '@shared/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { User } from 'lucide-react';
+import { User, PawPrint } from 'lucide-react';
 import { useLocation, Link } from 'wouter';
 
 export default function AboutPage() {
@@ -157,6 +158,12 @@ export default function AboutPage() {
                     <p className="text-lg text-primary" data-testid="modal-technician-title">
                       {selectedProfile.title}
                     </p>
+                    {selectedProfile.owns_dogs && (
+                      <Badge variant="secondary" className="mt-2" data-testid="badge-owns-dogs">
+                        <PawPrint className="h-3 w-3 mr-1" />
+                        Dog Owner
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
