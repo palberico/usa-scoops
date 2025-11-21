@@ -1206,6 +1206,15 @@ export default function CustomerPortal() {
                   </p>
                 </div>
 
+                {/* Gate Status */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Gate</h3>
+                  <div className="flex items-center gap-2" data-testid="modal-gate-status">
+                    <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+                    <span>Gate Closed</span>
+                  </div>
+                </div>
+
                 {/* Notes */}
                 {selectedPastVisit.visit.notes && (
                   <div className="space-y-2">
