@@ -115,6 +115,7 @@ export default function Signup() {
     // Step 3: Dog information
     dog_count: 1,
     dog_names: [''] as string[],
+    service_type: 'recurring' as 'recurring' | 'onetime',
     // Step 4: Property Information
     phone: '',
     street: '',
@@ -557,7 +558,7 @@ export default function Signup() {
             {step === 1 && 'See if we service your area'}
             {step === 2 && 'Set up your account to get started'}
             {step === 3 && 'Tell us about your dog'}
-            {step === 4 && 'Tell us about your property'}
+            {step === 4 && 'Share your property details'}
             {step === 5 && 'Select a time and complete payment'}
           </CardDescription>
           
@@ -706,6 +707,39 @@ export default function Signup() {
           {/* Step 3: Dog Information */}
           {step === 3 && (
             <form onSubmit={handleDogInfoSubmit} className="space-y-4">
+              {/* Service Type Selection */}
+              <div className="space-y-3">
+                <Label className="text-base">Service Type</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, service_type: 'recurring' })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      formData.service_type === 'recurring'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover-elevate'
+                    }`}
+                    data-testid="button-service-recurring"
+                  >
+                    <div className="font-semibold text-left">Recurring</div>
+                    <div className="text-sm text-muted-foreground text-left">Monthly service</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, service_type: 'onetime' })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      formData.service_type === 'onetime'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover-elevate'
+                    }`}
+                    data-testid="button-service-onetime"
+                  >
+                    <div className="font-semibold text-left">One-Time</div>
+                    <div className="text-sm text-muted-foreground text-left">Single visit</div>
+                  </button>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="dog_count">How many dogs do you have?</Label>
                 <Input
