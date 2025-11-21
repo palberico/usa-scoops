@@ -84,9 +84,6 @@ export function StripePaymentForm({
               applePay: 'never',
               googlePay: 'never',
             },
-            fields: {
-              billingDetails: 'never',
-            },
           }}
         />
       </div>

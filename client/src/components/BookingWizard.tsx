@@ -87,16 +87,26 @@ export default function BookingWizard({
         }
       });
       
-      // Sort slots
+      // Sort slots by next available date (closest date first)
       slots.sort((a, b) => {
-        if (a.is_recurring && !b.is_recurring) return -1;
-        if (!a.is_recurring && b.is_recurring) return 1;
+        let aDate: Date;
+        let bDate: Date;
         
-        if (a.is_recurring && b.is_recurring) {
-          return (a.day_of_week || 0) - (b.day_of_week || 0);
+        if (a.is_recurring) {
+          // Calculate next service date for recurring slot
+          aDate = calculateNextServiceDate(a.day_of_week || 0, a.window_start);
+        } else {
+          aDate = new Date(a.date);
         }
         
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (b.is_recurring) {
+          // Calculate next service date for recurring slot
+          bDate = calculateNextServiceDate(b.day_of_week || 0, b.window_start);
+        } else {
+          bDate = new Date(b.date);
+        }
+        
+        return aDate.getTime() - bDate.getTime();
       });
       
       setAvailableSlots(slots);

@@ -275,9 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           dogCount: dogCount.toString(),
           isRecurring: (slotData.is_recurring ?? true).toString(),
         },
-        automatic_payment_methods: {
-          enabled: true,
-        },
+        payment_method_types: ['card'],
       });
 
       res.json({ 
