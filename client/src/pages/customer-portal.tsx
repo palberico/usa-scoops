@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User, PawPrint } from 'lucide-react';
+import { Loader2, Calendar, MapPin, MessageSquare, LogOut, Clock, ShieldAlert, XCircle, CalendarClock, Plus, Menu, UserCircle2, ArrowLeft, User, PawPrint, CheckCircle2, MessageCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -62,6 +62,7 @@ export default function CustomerPortal() {
   const [technicianName, setTechnicianName] = useState<string | null>(null);
   const [showVisitDetailDialog, setShowVisitDetailDialog] = useState(false);
   const [selectedTechnicianProfile, setSelectedTechnicianProfile] = useState<TechnicianProfile | null>(null);
+  const [selectedPastVisit, setSelectedPastVisit] = useState<{ visit: Visit; slot: Slot } | null>(null);
 
   useEffect(() => {
     loadData();
