@@ -737,28 +737,41 @@ export default function CustomerPortal() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[120px]">Date</TableHead>
-                      <TableHead className="min-w-[120px]">Time</TableHead>
-                      <TableHead className="min-w-[100px]">Status</TableHead>
-                      <TableHead className="min-w-[200px]">Notes</TableHead>
+                      <TableHead className="min-w-[120px]">Completed</TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
+                      <TableHead className="min-w-[80px]">Gate</TableHead>
+                      <TableHead className="min-w-[120px]">Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {pastVisits.map(({ visit, slot }) => (
-                      <TableRow key={visit.id} data-testid={`row-visit-${visit.id}`}>
+                      <TableRow 
+                        key={visit.id} 
+                        data-testid={`row-visit-${visit.id}`}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => setSelectedPastVisit({ visit, slot })}
+                      >
                         <TableCell>
                           {format(visit.scheduled_for.toDate(), 'MMM d, yyyy')}
                         </TableCell>
                         <TableCell>
-                          {slot.window_start} - {slot.window_end}
+                          {visit.updated_at ? format(visit.updated_at.toDate(), 'h:mm a') : '-'}
                         </TableCell>
-                        <TableCell>{getStatusBadge(visit.status)}</TableCell>
+                        <TableCell>
+                          {visit.status === 'completed' ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" data-testid={`icon-status-${visit.id}`} />
+                          ) : (
+                            getStatusBadge(visit.status)
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" data-testid={`icon-gate-${visit.id}`} />
+                        </TableCell>
                         <TableCell>
                           {visit.notes ? (
-                            <p className="text-sm text-muted-foreground" data-testid={`text-notes-${visit.id}`}>
-                              {visit.notes}
-                            </p>
+                            <MessageCircle className="h-4 w-4 text-primary" data-testid={`icon-notes-${visit.id}`} />
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">No notes</span>
+                            <span className="text-xs text-muted-foreground">-</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -1131,6 +1144,88 @@ export default function CustomerPortal() {
                     </p>
                   </div>
                 )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Past Visit Details Modal */}
+      <Dialog open={!!selectedPastVisit} onOpenChange={(open) => !open && setSelectedPastVisit(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="modal-past-visit">
+          {selectedPastVisit && (
+            <>
+              <DialogHeader>
+                <DialogTitle>Visit Details</DialogTitle>
+                <DialogDescription>
+                  {format(selectedPastVisit.visit.scheduled_for.toDate(), 'MMMM d, yyyy')}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6">
+                {/* Service Date & Time */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Scheduled Date</h3>
+                    <p className="text-lg" data-testid="modal-visit-date">
+                      {format(selectedPastVisit.visit.scheduled_for.toDate(), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Time Window</h3>
+                    <p className="text-lg" data-testid="modal-visit-time">
+                      {selectedPastVisit.slot.window_start} - {selectedPastVisit.slot.window_end}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Completed</h3>
+                    <p className="text-lg" data-testid="modal-visit-completed">
+                      {selectedPastVisit.visit.updated_at ? format(selectedPastVisit.visit.updated_at.toDate(), 'h:mm a') : '-'}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-sm text-muted-foreground">Status</h3>
+                    <div data-testid="modal-visit-status">
+                      {selectedPastVisit.visit.status === 'completed' ? (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-500" />
+                          <span className="capitalize">Completed</span>
+                        </div>
+                      ) : (
+                        getStatusBadge(selectedPastVisit.visit.status)
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-2">
+                  <h3 className="font-semibold">Address</h3>
+                  <p className="text-sm text-muted-foreground" data-testid="modal-visit-address">
+                    {customer?.address.street}<br />
+                    {customer?.address.city}, {customer?.address.state} {customer?.address.zip}
+                  </p>
+                </div>
+
+                {/* Notes */}
+                {selectedPastVisit.visit.notes && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Notes</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap" data-testid="modal-visit-notes">
+                      {selectedPastVisit.visit.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Close Button */}
+                <div className="flex justify-end pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setSelectedPastVisit(null)}
+                    data-testid="button-close-visit-modal"
+                  >
+                    Close
+                  </Button>
+                </div>
               </div>
             </>
           )}
