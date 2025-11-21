@@ -429,6 +429,34 @@ export default function CustomerPortal() {
     await loadAvailableSlots();
   };
 
+  const handleTogglePause = async (isPaused: boolean) => {
+    if (!user) return;
+    try {
+      const newStatus = isPaused ? 'paused' : 'active';
+      await updateDoc(doc(db, 'customers', user.uid), {
+        status: newStatus,
+      });
+      
+      // Update local customer state
+      if (customer) {
+        setCustomer({ ...customer, status: newStatus as 'active' | 'paused' | 'prospect' });
+      }
+      
+      toast({
+        title: isPaused ? 'Service Paused' : 'Service Resumed',
+        description: isPaused 
+          ? 'Your recurring service has been paused. You can resume it anytime.' 
+          : 'Your recurring service has been resumed.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message || 'Failed to update service status',
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const labels: Record<string, string> = {
       scheduled: 'Scheduled',
@@ -545,7 +573,7 @@ export default function CustomerPortal() {
                     <div className="space-y-1">
                       {nextVisit.visit.is_recurring && (
                         <Badge variant="secondary" className="mb-1" data-testid="badge-recurring">
-                          Recurring Monthly Plan
+                          {customer?.status === 'paused' ? 'Service Paused' : 'Recurring Monthly Plan'}
                         </Badge>
                       )}
                       <p className="font-semibold text-lg" data-testid="text-visit-date">
@@ -623,8 +651,38 @@ export default function CustomerPortal() {
             </div>
           )}
 
+          {/* Pause Service Card */}
+          {nextVisit?.visit.is_recurring && (
+            <Card className="bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-background">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Pause Service
+                </CardTitle>
+                <CardDescription>
+                  {customer?.status === 'paused' ? 'Your service is currently paused' : 'Temporarily pause your recurring service'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                  <div>
+                    <Label className="text-base font-medium">Service Status</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {customer?.status === 'paused' ? 'Paused - No visits scheduled' : 'Active - Visits scheduled'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={customer?.status === 'paused'}
+                    onCheckedChange={handleTogglePause}
+                    data-testid="switch-pause-service"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Upcoming Recurring Schedule */}
-          {nextVisit?.visit.is_recurring && upcomingVisits.length > 0 && (() => {
+          {nextVisit?.visit.is_recurring && upcomingVisits.length > 0 && customer?.status !== 'paused' && (() => {
             const visitsPerPage = 4;
             const totalPages = Math.ceil(upcomingVisits.length / visitsPerPage);
             const startIndex = schedulePage * visitsPerPage;
