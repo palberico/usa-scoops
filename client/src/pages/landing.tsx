@@ -147,6 +147,15 @@ export default function Landing() {
                   About Us
                 </Button>
               </Link>
+              <Link href="/faq">
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-primary"
+                  data-testid="link-faq"
+                >
+                  FAQ
+                </Button>
+              </Link>
               <Link href="/terms">
                 <Button
                   variant="ghost"
