@@ -434,9 +434,16 @@ export default function CustomerPortal() {
     if (!user) return;
     try {
       const newStatus = isPaused ? 'paused' : 'active';
-      await updateDoc(doc(db, 'customers', user.uid), {
+      const updateData: any = {
         status: newStatus,
-      });
+      };
+      
+      // Clear pause_acknowledged when pausing so admin gets notification badge
+      if (isPaused) {
+        updateData.pause_acknowledged = false;
+      }
+      
+      await updateDoc(doc(db, 'customers', user.uid), updateData);
       
       // Update local customer state
       if (customer) {
