@@ -107,16 +107,6 @@ export default function FAQ() {
           {/* Question 8 */}
           <AccordionItem value="item-8" className="border rounded-md px-4">
             <AccordionTrigger className="hover:no-underline text-left font-semibold text-foreground">
-              Do you offer yard sanitizing?
-            </AccordionTrigger>
-            <AccordionContent className="text-muted-foreground">
-              Yes! Yard sanitizing is available as an optional add-on to either recurring or one-time service. Our pet-safe sanitizing solutions help eliminate odors and bacteria. This can be added to your booking when scheduling.
-            </AccordionContent>
-          </AccordionItem>
-
-          {/* Question 9 */}
-          <AccordionItem value="item-9" className="border rounded-md px-4">
-            <AccordionTrigger className="hover:no-underline text-left font-semibold text-foreground">
               How do I reschedule a visit?
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground">
@@ -124,8 +114,8 @@ export default function FAQ() {
             </AccordionContent>
           </AccordionItem>
 
-          {/* Question 10 */}
-          <AccordionItem value="item-10" className="border rounded-md px-4">
+          {/* Question 9 */}
+          <AccordionItem value="item-9" className="border rounded-md px-4">
             <AccordionTrigger className="hover:no-underline text-left font-semibold text-foreground">
               What information do you need from me?
             </AccordionTrigger>
@@ -134,18 +124,18 @@ export default function FAQ() {
             </AccordionContent>
           </AccordionItem>
 
-          {/* Question 11 */}
-          <AccordionItem value="item-11" className="border rounded-md px-4">
+          {/* Question 10 */}
+          <AccordionItem value="item-10" className="border rounded-md px-4">
             <AccordionTrigger className="hover:no-underline text-left font-semibold text-foreground">
-              Can I add or remove dogs from my account?
+              How do you prevent cross contamination?
             </AccordionTrigger>
             <AccordionContent className="text-muted-foreground">
-              Yes! You can update your dog count in your customer portal. If you add dogs, your pricing will adjust accordingly for future billings. If you remove dogs, your pricing will decrease.
+              We disinfect all tools and shoes after each cleaning with a kennel safe disinfectant. This ensures our gear is ready to go for the next house.
             </AccordionContent>
           </AccordionItem>
 
-          {/* Question 12 */}
-          <AccordionItem value="item-12" className="border rounded-md px-4">
+          {/* Question 11 */}
+          <AccordionItem value="item-11" className="border rounded-md px-4">
             <AccordionTrigger className="hover:no-underline text-left font-semibold text-foreground">
               What if there's an issue with my service?
             </AccordionTrigger>
