@@ -127,7 +127,7 @@ export default function Landing() {
               className="h-12 px-8"
               data-testid="button-signup-cta"
             >
-              Sign Up Now
+              Get a Quote
             </Button>
           </Link>
         </div>
