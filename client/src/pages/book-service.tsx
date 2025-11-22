@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import BookingWizard from '@/components/BookingWizard';
@@ -86,21 +87,25 @@ export default function BookService() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-white dark:bg-white border-b">
+      {/* Logo Section */}
+      <div className="py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Button
-              variant="ghost"
-              onClick={handleCancel}
-              data-testid="button-back-to-portal"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Portal
-            </Button>
-          </div>
+          <button
+            onClick={handleCancel}
+            className="flex justify-center cursor-pointer w-full"
+            data-testid="button-logo-back-to-portal"
+          >
+            <div className="inline-block rounded-full bg-white p-1">
+              <img 
+                src="/logo-full.png" 
+                alt="USA Scoops" 
+                className="h-40 sm:h-48 md:h-56 lg:h-64 w-auto"
+                data-testid="logo-image"
+              />
+            </div>
+          </button>
         </div>
-      </header>
+      </div>
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -168,6 +173,21 @@ export default function BookService() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Footer with Back Link */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <Separator className="mb-6" />
+        <div className="text-center">
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            data-testid="button-back-to-portal"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Portal
+          </Button>
+        </div>
       </div>
     </div>
   );
