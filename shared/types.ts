@@ -20,6 +20,7 @@ export interface Customer {
   dog_names?: string[];
   status: 'active' | 'paused' | 'prospect';
   role?: 'customer' | 'technician' | 'admin';
+  pause_acknowledged?: boolean;
   created_at: Timestamp;
   updated_at: Timestamp;
 }

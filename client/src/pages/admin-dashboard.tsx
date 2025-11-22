@@ -424,6 +424,9 @@ export default function AdminDashboard() {
           console.error('Error loading customer:', e);
         }
 
+        // Skip visits from paused customers
+        if (visit.customer?.status === 'paused') continue;
+
         // Get slot
         try {
           const slotDoc = await doc(db, 'slots', visit.slot_id);
@@ -483,6 +486,9 @@ export default function AdminDashboard() {
         } catch (e) {
           console.error('Error loading customer:', e);
         }
+
+        // Skip visits from paused customers
+        if (visit.customer?.status === 'paused') continue;
 
         // Get slot
         try {
