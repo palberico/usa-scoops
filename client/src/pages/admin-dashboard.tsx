@@ -35,7 +35,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, MapPin, Calendar, Plus, Trash2, DollarSign, User, Mail, Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, Timestamp, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { ServiceZip, Slot, Visit, Customer, Pricing, Technician, Message } from '@shared/types';
 import { getDayName, DEFAULT_PRICING } from '@shared/types';
@@ -114,7 +114,19 @@ export default function AdminDashboard() {
     loadPricing();
     loadMessages();
     loadCustomers();
-    loadPausedCustomers();
+
+    // Set up real-time listener for paused customers
+    const customersRef = collection(db, 'customers');
+    const q = query(customersRef, where('status', '==', 'paused'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const paused: Customer[] = [];
+      snapshot.forEach((doc) => {
+        paused.push({ ...doc.data(), uid: doc.id } as Customer);
+      });
+      setPausedCustomers(paused.sort((a, b) => a.name.localeCompare(b.name)));
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -718,20 +730,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const loadPausedCustomers = async () => {
-    try {
-      const customersRef = collection(db, 'customers');
-      const q = query(customersRef, where('status', '==', 'paused'));
-      const snapshot = await getDocs(q);
-      const paused: Customer[] = [];
-      snapshot.forEach((doc) => {
-        paused.push({ ...doc.data(), uid: doc.id } as Customer);
-      });
-      setPausedCustomers(paused.sort((a, b) => a.name.localeCompare(b.name)));
-    } catch (error: any) {
-      console.error('Error loading paused customers:', error);
-    }
-  };
 
   const handleMarkAsRead = async (messageId: string) => {
     try {
@@ -779,7 +777,6 @@ export default function AdminDashboard() {
         title: 'Success',
         description: 'Pause notification acknowledged',
       });
-      loadPausedCustomers();
     } catch (error: any) {
       toast({
         variant: 'destructive',
