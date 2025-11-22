@@ -557,9 +557,11 @@ export default function CustomerPortal() {
         <div className="grid gap-6">
           {/* Next Visit Card */}
           <Card 
-            className="bg-gradient-to-br from-[hsl(210,100%,90%)] to-white dark:from-[hsl(210,100%,20%)] dark:to-background hover-elevate active-elevate-2 cursor-pointer transition-all" 
+            className={`bg-gradient-to-br from-[hsl(210,100%,90%)] to-white dark:from-[hsl(210,100%,20%)] dark:to-background transition-all ${
+              customer?.status !== 'paused' ? 'hover-elevate active-elevate-2 cursor-pointer' : ''
+            }`}
             data-testid="card-next-visit"
-            onClick={() => nextVisit && setShowVisitDetailDialog(true)}
+            onClick={() => nextVisit && customer?.status !== 'paused' && setShowVisitDetailDialog(true)}
           >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

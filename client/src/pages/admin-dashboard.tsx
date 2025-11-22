@@ -764,21 +764,21 @@ export default function AdminDashboard() {
     setDeleteDialog({ open: false, type: '', id: '' });
   };
 
-  const handleResumeService = async (customerId: string) => {
+  const handleAcknowledgePause = async (customerId: string) => {
     try {
       await updateDoc(doc(db, 'customers', customerId), {
-        status: 'active',
+        pause_acknowledged: true,
       });
       toast({
         title: 'Success',
-        description: 'Customer service resumed',
+        description: 'Pause notification acknowledged',
       });
       loadPausedCustomers();
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to resume service',
+        description: error.message || 'Failed to acknowledge pause',
       });
     }
   };
@@ -807,9 +807,9 @@ export default function AdminDashboard() {
             <TabsTrigger value="pricing" data-testid="tab-pricing" className="col-span-2 lg:col-span-1">Pricing</TabsTrigger>
             <TabsTrigger value="paused" data-testid="tab-paused" className="relative col-span-2 lg:col-span-1">
               Paused
-              {pausedCustomers.length > 0 && (
+              {pausedCustomers.filter(c => !c.pause_acknowledged).length > 0 && (
                 <Badge variant="destructive" className="ml-2 px-1.5 py-0 text-xs min-w-5 h-5">
-                  {pausedCustomers.length}
+                  {pausedCustomers.filter(c => !c.pause_acknowledged).length}
                 </Badge>
               )}
             </TabsTrigger>
@@ -852,17 +852,19 @@ export default function AdminDashboard() {
                             <TableCell>{customer.email}</TableCell>
                             <TableCell>{customer.phone}</TableCell>
                             <TableCell>
-                              <Badge variant="secondary">Paused</Badge>
+                              <Badge variant={customer.pause_acknowledged ? 'destructive' : 'secondary'}>Paused</Badge>
                             </TableCell>
                             <TableCell>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleResumeService(customer.uid)}
-                                data-testid={`button-resume-${customer.uid}`}
-                              >
-                                Resume
-                              </Button>
+                              {!customer.pause_acknowledged && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAcknowledgePause(customer.uid)}
+                                  data-testid={`button-acknowledge-pause-${customer.uid}`}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         ))}
